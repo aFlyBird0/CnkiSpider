@@ -1,0 +1,16 @@
+error/
+result/
+target/
+author/
+html/
+author_output/
+
+*.csv
+
+# Log files
+*.log
+
+# Editor directories and files
+.idea
+
+**/__pycache__
