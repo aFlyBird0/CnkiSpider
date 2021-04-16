@@ -12,6 +12,7 @@ from CnkiSpider.statusManager import StatusManager
 from CnkiSpider.commonUtils import StringUtil, SpiderTypeEnum
 from CnkiSpider.file_util import FileUtil
 import os
+import logging
 
 class PaperAchSpider(scrapy.Spider):
     '''
@@ -19,6 +20,12 @@ class PaperAchSpider(scrapy.Spider):
     '''
     name = 'paperAch'
     allowed_domains = ['kns.cnki.net']
+    custom_settings = {
+        # 设置管道下载
+        # 设置log日志
+        'LOG_LEVEL': 'INFO',
+        'LOG_FILE': FileUtil.logDir + 'paperAch.log'
+    }
 
     def __init__(self, settings, *args, **kwargs):
         super(PaperAchSpider, self).__init__(*args, **kwargs)
@@ -43,7 +50,7 @@ class PaperAchSpider(scrapy.Spider):
         while nextDateAndCode is not None:
             date = nextDateAndCode[0]
             code = nextDateAndCode[1]
-            print("[info]开始爬取论文和成果链接,日期：%s，学科分类：%s" % (date, code))
+            logging.info("开始爬取论文和成果链接,日期：%s，学科分类：%s" % (date, code))
             # 根据日期、code获取cookies
             cookies = self.getCookies(date,code)
             url_first = self.base_url + '1'
@@ -56,23 +63,30 @@ class PaperAchSpider(scrapy.Spider):
                     "code": code,
                     "date": date
                 },
+                meta={
+                    'url': url_first,
+                    "requestType": "PaperAchGetFirstPage"
+                },
                 dont_filter=True
             )
             nextDateAndCode = sm.getNextDateAndCode()
-        print('所有论文成果链接已经获取结束！')
+        logging.info('所有论文成果链接已经获取结束！')
 
     # 第一页内容解析，获取页数信息
     def parse_first_page(self,response,cookies,code,date):
+        if self.generateErrorItem(response=response):
+            return
         cookies_now = cookies
         pagerTitleCell = response.xpath('//div[@class="pagerTitleCell"]/text()').extract_first()
         if pagerTitleCell == None:
-            print(response.text)
+            logging.info(response.text)
+            logging.info(response.text)
             self.markFirstError(code,date,0)
             return
         page = pagerTitleCell.strip()
         num = int(re.findall(r'\d+', page.replace(',', ''))[0]) # 文献数
         pagenum = math.ceil(num / 50)  #算出页数
-        print("[info]%s %s 共有：%d篇文献, %d页" % (code,date,num,pagenum))
+        logging.info("%s %s 共有：%d篇文献, %d页" % (code,date,num,pagenum))
         if num < 1:
             return
         if pagenum > 120:
@@ -92,21 +106,27 @@ class PaperAchSpider(scrapy.Spider):
                     "code": code,
                     "date": date
                 },
+                meta={
+                    'url': url,
+                    "requestType": "PaperAchGetLinks"
+                },
                 dont_filter=True
             )
 
     # 解析列表内容获取链接
     def parse_page_links(self,response,pagenum,code,date):
+        if self.generateErrorItem(response=response):
+            return
         rows = response.xpath('//table[@class="GridTableContent"]/tr')
         if len(rows) < 1:
             # 某一页没有获取到列表内容
-            print('页面无链接，以下是获取到的response:', response.text)
+            logging.error('页面无链接，以下是获取到的response:', response.text)
             self.markFirstError(code,date,pagenum)
             return
         else:
             rows.pop(0) # 去掉标题行
             num = len(rows) # 该页链接数
-            print("[info]爬取%s %s 第%d页: %d个链接" % (code,date,pagenum,num))
+            logging.info("爬取%s %s 第%d页: %d个链接" % (code,date,pagenum,num))
             for row in rows:
                 link = row.xpath('./td/a[@class="fz14"]/@href').extract_first()
                 link_params = link.split('&')
@@ -126,7 +146,10 @@ class PaperAchSpider(scrapy.Spider):
                             'url': url,
                             'code': code,
                             'date': date,
-                            "requestType": "getContent"
+                            "requestType": "JournalGetContent"
+                        },
+                        meta={
+                            'url': url
                         }
                     )
                 elif db == '博士' or db == '硕士':
@@ -142,7 +165,10 @@ class PaperAchSpider(scrapy.Spider):
                             'url': url,
                             'code': code,
                             'date': date,
-                            "requestType": "getContent"
+                            "requestType": "BoshuoGetContent"
+                        },
+                        meta={
+                            'url': url
                         }
                     )
                 elif db == '科技成果':
@@ -158,7 +184,10 @@ class PaperAchSpider(scrapy.Spider):
                             'url': url,
                             'code': code,
                             'date': date,
-                            "requestType": "getContent"
+                            "requestType": "AchGetContent"
+                        },
+                        meta={
+                            'url': url
                         }
                     )
 
@@ -168,7 +197,9 @@ class PaperAchSpider(scrapy.Spider):
         # 跳过知网错误链接
         # if url == 'https://kns.cnki.net/KCMS/detail/Error.aspx':
         #     return
-        print("解析期刊：%s" % url)
+        if self.generateErrorItem(response=response):
+            return
+        logging.info("解析期刊：%s" % url)
         item = self.getDefaultJournalItem()
         item = JournalContentItem()
         item['naviCode'] = code
@@ -221,7 +252,9 @@ class PaperAchSpider(scrapy.Spider):
     def parse_boshuo_content(self, response, url, code, date, requestType):
         # if url == 'https://kns.cnki.net/KCMS/detail/Error.aspx':
         #     return
-        print("解析期刊：%s" % url)
+        if self.generateErrorItem(response=response):
+            return
+        logging.info("解析期刊：%s" % url)
         item = self.getDefaultBoshuoItem()
         # 跳过知网错误链接
         item['naviCode'] = code
@@ -302,7 +335,9 @@ class PaperAchSpider(scrapy.Spider):
         # 跳过知网错误链接
         # if url == 'https://kns.cnki.net/KCMS/detail/Error.aspx':
         #     return
-        print("解析期刊：%s" % url)
+        if self.generateErrorItem(response=response):
+            return
+        logging.info("解析期刊：%s" % url)
         item = self.getDefaultAchItem()
         item['naviCode'] = code
         item['type'] = SpiderTypeEnum.ACHIEVEMENT.value
@@ -350,14 +385,72 @@ class PaperAchSpider(scrapy.Spider):
         :return:
         '''
         item = JournalContentItem()
+        item['naviCode'] = ""  # 学科分类代码 如A001这种
+        item['type'] = ""
+        item['year'] = ""
+        item['url'] = ""
+        item['uid'] = ""
+        item['title'] = ""
+        item['authors'] = ""  # 纯作者名列表
+        item['authorsWithCode'] = ""  # 带作者code的作者列表
+        item['organs'] = ""
+        item['authorOrganJson'] = ""  # 作者和单位的对应关系json字符串
+        item['summary'] = ""
+        item['keywords'] = ""
+        item['DOI'] = ""
+        item['special'] = ""  # 专辑
+        item['subject'] = ""  # 专题
+        item['cate_code'] = ""  # 分类号
+        item['db'] = ""  # 来源数据库
+
+        item['magazine'] = ""  # 期刊
+        item['mentor'] = ""  # 博硕导师
         return item
 
     def getDefaultBoshuoItem(self):
         item = BoshuoContentItem()
+        item = JournalContentItem()
+        item['naviCode'] = ""  # 学科分类代码 如A001这种
+        item['type'] = ""
+        item['year'] = ""
+        item['url'] = ""
+        item['uid'] = ""
+        item['title'] = ""
+        item['authors'] = ""  # 纯作者名列表
+        item['authorsWithCode'] = ""  # 带作者code的作者列表
+        item['organs'] = ""
+        item['authorOrganJson'] = ""  # 作者和单位的对应关系json字符串
+        item['summary'] = ""
+        item['keywords'] = ""
+        item['DOI'] = ""
+        item['special'] = ""  # 专辑
+        item['subject'] = ""  # 专题
+        item['cate_code'] = ""  # 分类号
+        item['db'] = ""  # 来源数据库
+
+        item['magazine'] = ""  # 期刊
+        item['mentor'] = ""  # 博硕导师
         return item
 
     def getDefaultAchItem(self):
         item = AchContentItem()
+        item['naviCode'] = ""  # 学科分类代码 如A001这种
+        item['type'] = ""
+        item['year'] = ""
+        item['url'] = ""
+        item['uid'] = ""
+        item['title'] = ""
+        item['authors'] = ""
+        item['organ'] = ""  # 第一完成单位
+        item['keywords'] = ""
+        item['book_code'] = ""  # 中图分类号
+        item['subject_code'] = ""  # 学科分类号
+        item['summary'] = ""
+        item['category'] = ""  # 成果类别
+        item['in_time'] = ""  # 成果入库时间
+        item['pass_time'] = ""  # 研究起止时间
+        item['level'] = ""  # 成果水平
+        item['evaluate'] = ""  # 评价形式
         return item
 
 
@@ -460,21 +553,21 @@ class PaperAchSpider(scrapy.Spider):
             for i in range(len(authorList)):
                 # 每个作者可能属于多个单位
                 organListOneAuthor = []
-                # print(subs, i)
-                # print(organList)
-                # print(authorList)
+                # logging.debug(subs, i)
+                # logging.debug(organList)
+                # logging.debug(authorList)
                 for index in subs[i].split(','):
                     # 这里注意index要减1，因为知网上标是从1开始，列表是从0开始
                     try:
                         organListOneAuthor.append(organList[int(index)-1])
                     except IndexError as e:
                         # 这段异常调试代码已经找到了数组越界成因，主要是之前单位字段提取有点问题
-                        print('异常来啦！')
-                        print('标题', response.xpath('//h1/text()').extract_first())
-                        print('上标列表', subs)
-                        print('目前上标', index)
-                        print('单位列表', organList)
-                        print('作者列表', authorList)
+                        logging.error('异常来啦！')
+                        logging.error('标题', response.xpath('//h1/text()').extract_first())
+                        logging.error('上标列表', subs)
+                        logging.error('目前上标', index)
+                        logging.error('单位列表', organList)
+                        logging.error('作者列表', authorList)
                         # 重新抛出
                         raise e
                 authorOrganDict[authorList[i]] = organListOneAuthor
@@ -512,3 +605,25 @@ class PaperAchSpider(scrapy.Spider):
         session_response = requests.get(search_url, params=params)
         cookies = requests.utils.dict_from_cookiejar(session_response.cookies)
         return cookies
+
+    def generateErrorItem(self, response):
+        '''
+        判断是否出现错误，如果有错误，yield错误item，并返回出错标志
+        :param response:
+        :return:
+        '''
+        item = ErrorUrlItem()
+        item['url'] = response.meta['url']
+        item['reqType'] = response.meta['requestType']
+        errorFlag = False
+        if not response.url:  # 接收到url==''时
+            logging.info('500')
+            item['errType'] = '500'
+            errorFlag = True
+            yield item
+        elif 'exception' in response.url:
+            item = ErrorUrlItem()
+            item['errType'] = 'Exception'
+            errorFlag = True
+            yield item
+        return errorFlag

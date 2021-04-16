@@ -12,6 +12,10 @@ if [ ! -d "html"  ];then
   mkdir "html"
 fi
 
+if [ ! -d "log"  ];then
+  mkdir "log"
+fi
+
 if [ ! -d "error"  ];then
   mkdir "error"
 fi

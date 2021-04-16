@@ -4,16 +4,27 @@ import math
 import re
 import requests
 from CnkiSpider.items import PatentContentItem
+from CnkiSpider.items import ErrorUrlItem
 from CnkiSpider.commonUtils import StringUtil
 from CnkiSpider.statusManager import StatusManager
 from CnkiSpider.commonUtils import SpiderTypeEnum
 from CnkiSpider.file_util import FileUtil
+from CnkiSpider.proxy import ProxyManager
+
+import logging
+import datetime
 
 
 class PatentSpider(scrapy.Spider):
     name = 'patent'
     allowed_domains = ['www.cnki.net/']
     # start_urls = ['//https://www.cnki.net//']
+    custom_settings = {
+        # 设置管道下载
+        # 设置log日志
+        'LOG_LEVEL': 'INFO',
+        'LOG_FILE': FileUtil.logDir + 'patent.log'
+    }
 
     def __init__(self, settings, *args, **kwargs):
         super(PatentSpider, self).__init__(*args, **kwargs)
@@ -43,7 +54,7 @@ class PatentSpider(scrapy.Spider):
         while nextDateAndCode is not None:
             date = nextDateAndCode[0]
             code = nextDateAndCode[1]
-            print("[info]开始爬取专利链接,日期：%s，学科分类：%s" % (date, code))
+            logging.info("开始爬取专利链接,日期：%s，学科分类：%s" % (date, code))
             cookies = self.getCookies(date, code)
 
             url_first = 'https://kns.cnki.net/kns/brief/brief.aspx?curpage=%d&RecordsPerPage=50&QueryID=10&ID=&turnpage=1&tpagemode=L&dbPrefix=SCPD&Fields=&DisplayMode=listmode&PageName=ASP.brief_result_aspx&isinEn=0&' % 1
@@ -58,19 +69,29 @@ class PatentSpider(scrapy.Spider):
                     "date": date,
                     "requestType": 'PatentGetFirstPage'
                 },
+                meta={
+                    'url': url_first,
+                    "requestType": 'PatentGetFirstPage'
+                },
                 dont_filter=True
             )
             nextDateAndCode = sm.getNextDateAndCode()
-        print('所有专利链接已经获取结束！')
+        logging.info('所有专利链接已经获取结束！')
 
     # 第一页内容解析，获取页数信息
     def parse_first_page(self, response,cookies,code, date,requestType):
+        if self.generateErrorItem(response=response):
+            return
         cookies_now = cookies
         pagerTitleCell = response.xpath('//div[@class="pagerTitleCell"]/text()').extract_first()
+        if pagerTitleCell == None:
+            print(response.text)
+            logging.error("论文页面解析出现错误", code, date, response.meta['url'], response.text)
+            return
         page = pagerTitleCell.strip()
         num = int(re.findall(r'\d+', page.replace(',', ''))[0])  # 文献数
         pagenum = math.ceil(num / 50)  # 算出页数
-        print("[info]%s %s 共有：%d篇文献, %d页" % (code, date, num, pagenum))
+        logging.info("%s %s 共有：%d篇文献, %d页" % (code, date, num, pagenum))
         if num < 1:
             return
         if pagenum > 120:
@@ -92,14 +113,20 @@ class PatentSpider(scrapy.Spider):
                     "date": date,
                     "requestType": "PatentGetLinks"
                 },
+                meta={
+                    'url':url,
+                    "requestType": "PatentGetLinks"
+                },
                 dont_filter=True
             )
 
     def parse_page_links(self,response,pagenum,code,date,requestType):
+        if self.generateErrorItem(response=response):
+            return
         link = response.xpath('//a[@class="fz14"]/@href').extract()  # 返回链接地址href列表
         if len(link) == 0:
             return
-        print("日期：%s,学科分类：%s，第%d页有%d个专利" % (date, code, pagenum+1, len(link)))
+        logging.info("日期：%s,学科分类：%s，第%d页有%d个专利" % (date, code, pagenum+1, len(link)))
         for j in range(len(link)):
             # item = PatentCodeItem()
             patentCode = re.search(r'filename=(.*)$', link[j]).group(1)
@@ -118,12 +145,18 @@ class PatentSpider(scrapy.Spider):
                     'code': code,
                     'date': date,
                     "requestType": "patentGetContent"
+                },
+                meta={
+                    'url':url,
+                    "requestType": "patentGetContent"
                 }
             )
 
     # 获取专利详情页内容
     def parse_content(self, response, url, code, date, requestType):
-        print("解析专利：%s" % url)
+        if self.generateErrorItem(response=response):
+            return
+        logging.info("解析专利：%s" % url)
         item = self.getDefaultPatentItem()
         item['type'] = SpiderTypeEnum.PATENT.value
         item['naviCode'] = code # 学科分类
@@ -185,7 +218,7 @@ class PatentSpider(scrapy.Spider):
         # item['legalStatus'] = legalStatusBaseUrl % (item['applicationNO'], vl)    # 法律状态链接
         item['legalStatus'] = "" #可以请求旧接口，没必要再爬 https://dbpub.cnki.net/GBSearch/SCPDGBSearch.aspx?ID=
         # 保存html文件
-        FileUtil.saveHtml(year=date[0:4], response=response, type=SpiderTypeEnum.PATENT, url=url, title=title)
+        FileUtil.saveHtml(year=date[0:4], response=response, type=SpiderTypeEnum.PATENT.value, url=url, title=title)
         yield item
 
     def getDefaultPatentItem(self):
@@ -195,7 +228,7 @@ class PatentSpider(scrapy.Spider):
         :return:
         '''
         item = PatentContentItem()
-        item['code'] = ""
+        item['naviCode'] = ""
         item['title'] = ""
         item['year'] = ""
         item['applicationType'] = ""
@@ -269,3 +302,26 @@ class PatentSpider(scrapy.Spider):
             session_response = requests.get(search_url, params=params)
         cookies = requests.utils.dict_from_cookiejar(session_response.cookies)
         return cookies
+
+
+    def generateErrorItem(self, response):
+        '''
+        判断是否出现错误，如果有错误，yield错误item，并返回出错标志
+        :param response:
+        :return:
+        '''
+        item = ErrorUrlItem()
+        item['url'] = response.meta['url']
+        item['reqType'] = response.meta['requestType']
+        errorFlag = False
+        if not response.url:  # 接收到url==''时
+            logging.info('500')
+            item['errType'] = '500'
+            errorFlag = True
+            yield item
+        elif 'exception' in response.url:
+            item = ErrorUrlItem()
+            item['errType'] = 'Exception'
+            errorFlag = True
+            yield item
+        return errorFlag

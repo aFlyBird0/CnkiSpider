@@ -134,3 +134,8 @@ class AuthorItem(scrapy.Item):
     category = scrapy.Field()
     upload_amount = scrapy.Field()
     download_amount = scrapy.Field()
+
+class ErrorUrlItem(scrapy.Item):
+    url = scrapy.Field()
+    errType = scrapy.Field()
+    reqType = scrapy.Field()

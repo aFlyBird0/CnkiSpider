@@ -9,6 +9,7 @@ from scrapy import signals
 from itemadapter import is_item, ItemAdapter
 from CnkiSpider.file_util import FileUtil
 from CnkiSpider.commonUtils import SpiderTypeEnum
+import logging
 
 
 class CnkispiderSpiderMiddleware:
@@ -101,8 +102,15 @@ class CnkispiderDownloaderMiddleware:
     #     # - return a Request object: stops process_exception() chain
     #     pass
 
-    # 全局请求异常处理
+    #
     def process_exception(self, request, exception, spider):
+        '''
+        全局请求异常处理, 这里暂时没用
+        :param request:
+        :param exception:
+        :param spider:
+        :return:
+        '''
         key = request.cb_kwargs
         print('全局异常拦截！！！\n')
         print(exception)
@@ -123,8 +131,6 @@ class CnkispiderDownloaderMiddleware:
             else:
                 pagenum = 0
             self.markSecondError(key['code'], key['date'], pagenum)
-        elif spider.name == 'link':
-            self.markLinkError(key['url'], spider.name)
         return request
 
     def markLinkError(self, url, type):

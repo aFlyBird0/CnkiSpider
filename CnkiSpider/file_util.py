@@ -8,10 +8,11 @@ class FileUtil:
     文件工具类
     '''
 
-    targetDir = "./target"
-    resultDir = "./result"
-    htmlDir = "./html"
-    errorDir = "./error"
+    targetDir = "./target/"
+    resultDir = "./result/"
+    htmlDir = "./html/"
+    errorDir = "./error/"
+    logDir = "./log/"
 
     errorLinkDir = "./error/link/"
     errorOverflowDir = "./error/overflow/"
@@ -92,6 +93,7 @@ class FileUtil:
         cls.mkDirsIfNotExist(cls.resultDir)
         cls.mkDirsIfNotExist(cls.htmlDir)
         cls.mkDirsIfNotExist(cls.errorDir)
+        cls.mkDirsIfNotExist(cls.logDir)
         cls.mkErrorLinkDirs()
         cls.mkErrorOverflowDirs()
         cls.mkErrorDayDirs()
@@ -120,7 +122,7 @@ class FileUtil:
         cls.mkDirsIfNotExist(cls.errorPageDir)
 
     @classmethod
-    def saveHtml(cls, year, response, type, url, title):
+    def saveHtml(cls, year, response, type:str, url, title):
         '''
         存放html文件
         :param response:
