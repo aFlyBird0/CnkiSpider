@@ -10,6 +10,8 @@ from CnkiSpider.statusManager import StatusManager
 from CnkiSpider.commonUtils import SpiderTypeEnum
 from CnkiSpider.file_util import FileUtil
 from CnkiSpider.proxy import ProxyManager
+from scrapy.http.cookies import CookieJar
+from CnkiSpider.proxy import ProxyManager
 
 import logging
 import datetime

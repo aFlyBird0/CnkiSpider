@@ -11,13 +11,15 @@ from scrapy.utils.project import get_project_settings
 
 class StatusManager():
 
-    srcCodeFile = 'dataSrc/code.txt'
+    srcCodeFile = 'dataSrc/codeTest.txt'
     settings = get_project_settings()
     host = settings.get("MYSQL_HOST")
     port = int(settings.get("MYSQL_PORT"))
     user = settings.get("MYSQL_USER")
     passwd = settings.get("MYSQL_PASSWD")
     database = settings.get("MYSQL_DATABASE")
+    table = settings.get("MYSQL_TABLE")
+    logging.debug(host, port, user, passwd, database, table)
 
     def __init__(self, type: SpiderTypeEnum):
         self.codes = self.getCodeAll()
@@ -32,7 +34,7 @@ class StatusManager():
                                user=StatusManager.user, passwd=StatusManager.passwd,
                                database=StatusManager.database)
         cursor = conn.cursor()
-        cursor.execute("select `curCode`, `curDate` from `status` where `type` = '%s'" % self.type)
+        cursor.execute("select `curCode`, `curDate` from `%s` where `type` = '%s'" % (StatusManager.table, self.type))
         result = cursor.fetchone()
         # 数据库没数据就返回空，报错给调用者，提示用户向mysql中添加数据
         # 判断type为专利的数据条是否存在
@@ -50,7 +52,7 @@ class StatusManager():
         # 判断学科代码是否存在，不存在就默认从code表第一个开始
         if result[0] == "" or result[0] is None:
             code = self.codes[0]
-            cursor.execute("UPDATE `status` SET curCode = '%s' WHERE type = '%s'" % (code, self.type))
+            cursor.execute("UPDATE `%s` SET curCode = '%s' WHERE type = '%s'" % (StatusManager.table, code, self.type))
             conn.commit()
             conn.close()
             print('未设置初始code信息，已自动设置为', code)
@@ -108,7 +110,7 @@ class StatusManager():
         conn = pymysql.connect(host=StatusManager.host, user=StatusManager.user, passwd="123456", database="ZhiWangSpider")
         cursor = conn.cursor()
         #更新正在爬取的日期和学科分类的sql
-        updateSql = "UPDATE `status` SET curDate = '%s', curCode = '%s' WHERE type = '%s'" % (date, code, self.type)
+        updateSql = "UPDATE `%s` SET curDate = '%s', curCode = '%s' WHERE type = '%s'" % (StatusManager.table, date, code, self.type)
         cursor.execute(updateSql)
         conn.commit()
         conn.close()

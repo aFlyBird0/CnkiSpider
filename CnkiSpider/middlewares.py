@@ -10,6 +10,7 @@ from itemadapter import is_item, ItemAdapter
 from CnkiSpider.file_util import FileUtil
 from CnkiSpider.commonUtils import SpiderTypeEnum
 import logging
+from CnkiSpider.proxy import ProxyManager
 
 
 class CnkispiderSpiderMiddleware:
@@ -81,6 +82,9 @@ class CnkispiderDownloaderMiddleware:
         # - or return a Request object
         # - or raise IgnoreRequest: process_exception() methods of
         #   installed downloader middleware will be called
+        pm = ProxyManager()
+        request.meta["proxy"] = pm.getProxy()
+        request.headers["Proxy-Authorization"] = pm.proxyAuth
         return None
 
     def process_response(self, request, response, spider):
@@ -112,10 +116,12 @@ class CnkispiderDownloaderMiddleware:
         :return:
         '''
         key = request.cb_kwargs
+        print(request)
         print('全局异常拦截！！！\n')
-        print(exception)
+        print('异常', exception)
+        print(type(exception))
         if spider.name == SpiderTypeEnum.PATENT.value:
-            print(key)
+            # print(key)
             if key['requestType'] == 'PatentGetFirstPage':
                 self.markDayError(type=SpiderTypeEnum.PATENT.value, code=key['code'], date=key['date'])
             elif key['requestType'] == 'PatentGetLinks':
