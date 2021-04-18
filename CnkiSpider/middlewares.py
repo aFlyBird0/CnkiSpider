@@ -83,7 +83,7 @@ class CnkispiderDownloaderMiddleware:
         # - or raise IgnoreRequest: process_exception() methods of
         #   installed downloader middleware will be called
         pm = ProxyManager()
-        request.meta["proxy"] = pm.getProxy()
+        request.meta["proxy"] = pm.getProxyString()
         request.headers["Proxy-Authorization"] = pm.proxyAuth
         return None
 

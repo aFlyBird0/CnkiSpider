@@ -57,16 +57,16 @@ class PatentSpider(scrapy.Spider):
             date = nextDateAndCode[0]
             code = nextDateAndCode[1]
             logging.info("开始爬取专利链接,日期：%s，学科分类：%s" % (date, code))
-            cookies = self.getCookies(date, code)
+            # cookies = self.getCookies(date, code)
 
             url_first = 'https://kns.cnki.net/kns/brief/brief.aspx?curpage=%d&RecordsPerPage=50&QueryID=10&ID=&turnpage=1&tpagemode=L&dbPrefix=SCPD&Fields=&DisplayMode=listmode&PageName=ASP.brief_result_aspx&isinEn=0&' % 1
 
             yield scrapy.Request(
                 url=url_first,
-                cookies=cookies,
+                # cookies=cookies,
                 callback=self.parse_first_page,
                 cb_kwargs={
-                    'cookies': cookies,
+                    # 'cookies': cookies,
                     "code": code,
                     "date": date,
                     "requestType": 'PatentGetFirstPage'
@@ -81,10 +81,10 @@ class PatentSpider(scrapy.Spider):
         logging.info('所有专利链接已经获取结束！')
 
     # 第一页内容解析，获取页数信息
-    def parse_first_page(self, response,cookies,code, date,requestType):
+    def parse_first_page(self, response,code, date,requestType):
         if self.generateErrorItem(response=response):
             return
-        cookies_now = cookies
+        # cookies_now = cookies
         pagerTitleCell = response.xpath('//div[@class="pagerTitleCell"]/text()').extract_first()
         if pagerTitleCell == None:
             print(response.text)
@@ -102,12 +102,13 @@ class PatentSpider(scrapy.Spider):
             return
         for i in range(1, pagenum + 1):
             if i % 13 == 0:
-                cookies_now = self.getCookies(date, code)  # 超过15页换cookie
+                # cookies_now = self.getCookies(date, code)  # 超过15页换cookie
+                pass
             url =  self.base_url % i
             # print(url)
             yield scrapy.Request(
                 url=url,
-                cookies=cookies_now,
+                # cookies=cookies_now,
                 callback=self.parse_page_links,
                 cb_kwargs={
                     "pagenum": i,
@@ -304,6 +305,7 @@ class PatentSpider(scrapy.Spider):
             session_response = requests.get(search_url, params=params)
         cookies = requests.utils.dict_from_cookiejar(session_response.cookies)
         return cookies
+
 
 
     def generateErrorItem(self, response):
