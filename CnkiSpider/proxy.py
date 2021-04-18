@@ -30,6 +30,10 @@ class ProxyManager:
     proxyLeft = 0
     # ip列表
     proxies = []
+    # ip复用的最大次数
+    reuseMAX = settings.get("PROXY_REUSE")
+    # ip已经复用的次数
+    reuseCur = 0
 
     @classmethod
     def getProxiesDicts(cls):
@@ -39,7 +43,7 @@ class ProxyManager:
         '''
         try:
             response = requests.get(
-                url="http://tunnel-api.apeyun.com/d",
+                url="http://tunnel-api.apeyun.com/q",
                 params=ProxyManager.params,
                 headers={
                     "Content-Type": "text/plain; charset=utf-8",
@@ -56,7 +60,7 @@ class ProxyManager:
                     data = res['data']
                     for d in data:
                         cls.proxies.append({'ip': d['ip'], 'port':d['port']})
-                    logging.debug('获取到的所有代理', cls.proxies)
+                    logging.debug('获取到的所有代理:%s', str(cls.proxies))
                     return True
                 elif res['code'] == 11010030:
                     # "当前IP已绑定到其它订单，请先解绑"
@@ -64,27 +68,39 @@ class ProxyManager:
                     time.sleep(1)
                     cls.getProxiesDicts()
                 else:
-                    print('代理请求错误，错误代码：%d,错误信息：%s' % (res['code'], res['msg'] ))
+                    logging.debug('代理请求错误，错误代码：%d,错误信息：%s' % (res['code'], res['msg'] ))
                     return False
         except requests.exceptions.RequestException:
-            print('HTTP Request failed')
+            logging.error('代理获取时，HTTP Request failed')
             return False
 
     @classmethod
     def getProxyTuple(cls):
+        # 上次请求的代理还没用完
         if cls.proxyLeft > 0:
-            proxy = cls.proxies[ProxyManager.limit-cls.proxyLeft]
-            logging.debug("获取到的代理：%s:%d" % (proxy['ip'], proxy['port']))
-            cls.proxyLeft -= 1
+            proxy = {}
+            # 当前代理还可被复用
+            if cls.reuseCur < cls.reuseMAX:
+                proxy = cls.proxies[ProxyManager.limit - cls.proxyLeft]
+                logging.debug("代理复用，获取到的代理：%s:%d" % (proxy['ip'], proxy['port']))
+                cls.reuseCur += 1
+            # 当前代理达到最大复用次数，更换同一批次的下一个代理
+            else:
+                proxy = cls.proxies[ProxyManager.limit - cls.proxyLeft]
+                logging.debug("当前代理已复用完，获取到的同一批次下一代理：%s:%d" % (proxy['ip'], proxy['port']))
+                cls.reuseCur = 1
+                cls.proxyLeft -= 1
             # logging.debug("当前剩余代理数量：%s" % cls.proxyLeft)
             return (proxy['ip'], proxy['port'])
+        # 当前无可用代理，请求新代理
         else:
             for i in range(12):
                 if cls.getProxiesDicts():
                     cls.proxyLeft = ProxyManager.limit
                     proxy = cls.proxies[ProxyManager.limit-cls.proxyLeft]
                     cls.proxyLeft -= 1
-                    logging.debug("获取到的代理：%s:%d" % (proxy['ip'], proxy['port']))
+                    cls.reuseCur = 1
+                    logging.debug("当前批次的所有代理都已用完，获取到的代理：%s:%d" % (proxy['ip'], proxy['port']))
                     # logging.debug("当前剩余代理数量：%s" % cls.proxyLeft)
                     return  (proxy['ip'], proxy['port'])
                 time.sleep(1)
@@ -93,22 +109,33 @@ class ProxyManager:
 
     @classmethod
     def getProxyString(cls):
+        # 上次请求的代理还没用完
         if cls.proxyLeft > 0:
-            proxy = cls.proxies[ProxyManager.limit-cls.proxyLeft]
-            logging.debug("获取到的代理：%s:%d" % (proxy['ip'], proxy['port']))
-            cls.proxyLeft -= 1
+            proxy = {}
+            # 当前代理还可被复用
+            if cls.reuseCur < cls.reuseMAX:
+                proxy = cls.proxies[ProxyManager.limit - cls.proxyLeft]
+                logging.debug("代理复用，获取到的代理：%s:%d" % (proxy['ip'], proxy['port']))
+                cls.reuseCur += 1
+            # 当前代理达到最大复用次数，更换同一批次的下一个代理
+            else:
+                proxy = cls.proxies[ProxyManager.limit - cls.proxyLeft]
+                logging.debug("当前代理已复用完，获取到的同一批次下一代理：%s:%d" % (proxy['ip'], proxy['port']))
+                cls.reuseCur = 1
+                cls.proxyLeft -= 1
             # logging.debug("当前剩余代理数量：%s" % cls.proxyLeft)
-            return ("http://" + proxy['ip'] + ":" + str(proxy['port']))
+            return "http://" + proxy['ip'] + ":" + str(proxy['port'])
+        # 当前无可用代理，请求新代理
         else:
             for i in range(12):
                 if cls.getProxiesDicts():
                     cls.proxyLeft = ProxyManager.limit
                     proxy = cls.proxies[ProxyManager.limit-cls.proxyLeft]
                     cls.proxyLeft -= 1
-                    logging.debug("获取到的代理：%s:%d" % (proxy['ip'], proxy['port']))
+                    cls.reuseCur = 1
+                    logging.debug("当前批次的所有代理都已用完，获取到的代理：%s:%d" % (proxy['ip'], proxy['port']))
                     # logging.debug("当前剩余代理数量：%s" % cls.proxyLeft)
-                    return  ("http://" + proxy['ip'] + ":" + str(proxy['port']))
-                # 代理一般是几秒才能请求一次，所以可能存在请求过快导致报错的情况，这时候暂停一秒再次请求
+                    return  "http://" + proxy['ip'] + ":" + str(proxy['port'])
                 time.sleep(1)
             logging.error("连续十二次获取ip失败，程序退出")
             sys.exit()
