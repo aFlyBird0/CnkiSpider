@@ -26,18 +26,24 @@ class CnkispiderPipeline:
                     csvWriter = csv.DictWriter(f, item.keys())
                     csvWriter.writerow(item)
             elif isinstance(item, ErrorUrlItem):
-                self.markLinkError(item['url'], SpiderTypeEnum.PATENT.value)
+                # self.markLinkError(item['url'], SpiderTypeEnum.PATENT.value)
+                self.easyMarkErrorItem(item)
 
         elif spider.name == 'paperAch':
-            year = item['year']
-            # 不同类型的根据type字段直接新建对应的文件夹
-            resultPath = FileUtil.mkResultYearTypeDir(year, item['type'])
-            resultFilename = resultPath + item['naviCode'] + '.csv'
-            FileUtil.write_header(resultFilename, item.keys())
-            item = self.removeLineFeed(item)
-            with open(resultFilename, 'a', encoding='utf-8', newline='') as f:
-                csvWriter = csv.DictWriter(f, item.keys())
-                csvWriter.writerow(item)
+            if isinstance(item, PatentContentItem) or isinstance(item, JournalContentItem)\
+                    or isinstance(item, BoshuoContentItem) or isinstance(item, AchContentItem):
+                year = item['year']
+                # 不同类型的根据type字段直接新建对应的文件夹
+                resultPath = FileUtil.mkResultYearTypeDir(year, item['type'])
+                resultFilename = resultPath + item['naviCode'] + '.csv'
+                FileUtil.write_header(resultFilename, item.keys())
+                item = self.removeLineFeed(item)
+                with open(resultFilename, 'a', encoding='utf-8', newline='') as f:
+                    csvWriter = csv.DictWriter(f, item.keys())
+                    csvWriter.writerow(item)
+            elif isinstance(item, ErrorUrlItem):
+                # self.markLinkError(item['url'], SpiderTypeEnum.PATENT.value)
+                self.easyMarkErrorItem(item)
         return item
 
     def removeLineFeed(self, item):
@@ -54,3 +60,17 @@ class CnkispiderPipeline:
     def markLinkError(self, url, type):
         with open(FileUtil.errorLinkDir + type + 'Error.txt', 'a', encoding='utf-8') as file:
             file.write(url + '\n')
+
+    def easyMarkErrorItem(self, item: ErrorUrlItem):
+        '''
+        简单的记录错误，先都存到同一个文件中
+        :param item:
+        :return:
+        '''
+        resultPath = FileUtil.errorDir()
+        resultFilename = resultPath + 'allErrors'
+        FileUtil.write_header(resultFilename, item.keys())
+        item = self.removeLineFeed(item)
+        with open(resultFilename, 'a', encoding='utf-8', newline='') as f:
+            csvWriter = csv.DictWriter(f, item.keys())
+            csvWriter.writerow(item)
