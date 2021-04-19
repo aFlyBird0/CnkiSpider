@@ -1,8 +1,8 @@
-from CnkiSpider.proxy import ProxyManager
+from CnkiSpider.proxy import ApeProxyManager
 
 
 class CnkispiderSpiderProxyMiddleware:
     def process_request(self, request, spider):
-        request.meta["proxy"] = ProxyManager.getProxyString()
-        request.headers["Proxy-Authorization"] = ProxyManager.proxyAuth
+        request.meta["proxy"] = ApeProxyManager.getProxyString()
+        request.headers["Proxy-Authorization"] = ApeProxyManager.proxyAuth
         return None

@@ -6,8 +6,9 @@ import logging
 import sys
 import time
 import base64
+import random
 
-class ProxyManager:
+class ApeProxyManager:
     settings = get_project_settings()
     open = settings.get("PROXY_OPEN")
     id = settings.get("PROXY_ID")
@@ -43,8 +44,8 @@ class ProxyManager:
         '''
         try:
             response = requests.get(
-                url="http://tunnel-api.apeyun.com/q",
-                params=ProxyManager.params,
+                url="http://tunnel-api.apeyun.com/d",
+                params=ApeProxyManager.params,
                 headers={
                     "Content-Type": "text/plain; charset=utf-8",
                 }
@@ -76,31 +77,22 @@ class ProxyManager:
 
     @classmethod
     def getProxyTuple(cls):
-        # 上次请求的代理还没用完
         if cls.proxyLeft > 0:
-            proxy = {}
-            # 当前代理还可被复用
-            if cls.reuseCur < cls.reuseMAX:
-                proxy = cls.proxies[ProxyManager.limit - cls.proxyLeft]
-                logging.debug("代理复用，获取到的代理：%s:%d" % (proxy['ip'], proxy['port']))
-                cls.reuseCur += 1
-            # 当前代理达到最大复用次数，更换同一批次的下一个代理
-            else:
-                proxy = cls.proxies[ProxyManager.limit - cls.proxyLeft]
-                logging.debug("当前代理已复用完，获取到的同一批次下一代理：%s:%d" % (proxy['ip'], proxy['port']))
-                cls.reuseCur = 1
-                cls.proxyLeft -= 1
+            # proxy = cls.proxies[ApeProxyManager.limit-cls.proxyLeft]
+            proxy = random.choice(cls.proxies)
+            logging.debug("代理复用，获取到的代理：%s:%d" % (proxy['ip'], proxy['port']))
+            cls.proxyLeft -= 1
             # logging.debug("当前剩余代理数量：%s" % cls.proxyLeft)
             return (proxy['ip'], proxy['port'])
-        # 当前无可用代理，请求新代理
         else:
             for i in range(12):
                 if cls.getProxiesDicts():
-                    cls.proxyLeft = ProxyManager.limit
-                    proxy = cls.proxies[ProxyManager.limit-cls.proxyLeft]
+                    # 总可用数量等于代理数量 * 最大复用次数
+                    cls.proxyLeft = ApeProxyManager.limit * ApeProxyManager.reuseMAX
+                    # proxy = cls.proxies[ApeProxyManager.limit-cls.proxyLeft]
+                    proxy = random.choice(cls.proxies)
                     cls.proxyLeft -= 1
-                    cls.reuseCur = 1
-                    logging.debug("当前批次的所有代理都已用完，获取到的代理：%s:%d" % (proxy['ip'], proxy['port']))
+                    logging.debug("请求新批次代理，获取到的代理：%s:%d" % (proxy['ip'], proxy['port']))
                     # logging.debug("当前剩余代理数量：%s" % cls.proxyLeft)
                     return  (proxy['ip'], proxy['port'])
                 time.sleep(1)
@@ -109,38 +101,29 @@ class ProxyManager:
 
     @classmethod
     def getProxyString(cls):
-        # 上次请求的代理还没用完
         if cls.proxyLeft > 0:
-            proxy = {}
-            # 当前代理还可被复用
-            if cls.reuseCur < cls.reuseMAX:
-                proxy = cls.proxies[ProxyManager.limit - cls.proxyLeft]
-                logging.debug("代理复用，获取到的代理：%s:%d" % (proxy['ip'], proxy['port']))
-                cls.reuseCur += 1
-            # 当前代理达到最大复用次数，更换同一批次的下一个代理
-            else:
-                proxy = cls.proxies[ProxyManager.limit - cls.proxyLeft]
-                logging.debug("当前代理已复用完，获取到的同一批次下一代理：%s:%d" % (proxy['ip'], proxy['port']))
-                cls.reuseCur = 1
-                cls.proxyLeft -= 1
+            # proxy = cls.proxies[ApeProxyManager.limit-cls.proxyLeft]
+            proxy = random.choice(cls.proxies)
+            logging.debug("代理复用，获取到的代理：%s:%d" % (proxy['ip'], proxy['port']))
+            cls.proxyLeft -= 1
             # logging.debug("当前剩余代理数量：%s" % cls.proxyLeft)
-            return "http://" + proxy['ip'] + ":" + str(proxy['port'])
-        # 当前无可用代理，请求新代理
+            return ("http://" + proxy['ip'] + ":" + str(proxy['port']))
         else:
             for i in range(12):
                 if cls.getProxiesDicts():
-                    cls.proxyLeft = ProxyManager.limit
-                    proxy = cls.proxies[ProxyManager.limit-cls.proxyLeft]
+                    cls.proxyLeft = ApeProxyManager.limit * ApeProxyManager.reuseMAX
+                    # proxy = cls.proxies[ApeProxyManager.limit-cls.proxyLeft]
+                    proxy = random.choice(cls.proxies)
                     cls.proxyLeft -= 1
-                    cls.reuseCur = 1
-                    logging.debug("当前批次的所有代理都已用完，获取到的代理：%s:%d" % (proxy['ip'], proxy['port']))
+                    logging.debug("请求新批次代理，获取到的代理：%s:%d" % (proxy['ip'], proxy['port']))
                     # logging.debug("当前剩余代理数量：%s" % cls.proxyLeft)
-                    return  "http://" + proxy['ip'] + ":" + str(proxy['port'])
+                    return  ("http://" + proxy['ip'] + ":" + str(proxy['port']))
+                # 代理一般是几秒才能请求一次，所以可能存在请求过快导致报错的情况，这时候暂停一秒再次请求
                 time.sleep(1)
             logging.error("连续十二次获取ip失败，程序退出")
             sys.exit()
 
 if __name__ == '__main__':
-    for i in range(10):
-        proxy = ProxyManager.getProxyTuple()
+    for i in range(30):
+        proxy = ApeProxyManager.getProxyTuple()
         print(proxy)
