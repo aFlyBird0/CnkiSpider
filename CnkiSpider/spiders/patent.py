@@ -58,10 +58,10 @@ class PatentSpider(scrapy.Spider):
             code = nextDateAndCode[1]
             logging.info("开始爬取专利链接,日期：%s，学科分类：%s" % (date, code))
 
-            proxyDict = ApeProxyManager.getProxyDict()
-            proxyString = ApeProxyManager.proxyDict2String(proxyDict)
+            # proxyDict = ApeProxyManager.getProxyDict()
+            # proxyString = ApeProxyManager.proxyDict2String(proxyDict)
 
-            cookies = CookieUtil.getPatentCookies(date, code, proxyDict)
+            cookies = CookieUtil.getPatentCookiesProxy(date, code)
 
             url_first = 'https://kns.cnki.net/kns/brief/brief.aspx?curpage=%d&RecordsPerPage=50&QueryID=10&ID=&turnpage=1&tpagemode=L&dbPrefix=SCPD&Fields=&DisplayMode=listmode&PageName=ASP.brief_result_aspx&isinEn=0&' % 1
             # print("发起请求获取第一页信息", date, code)
@@ -77,7 +77,7 @@ class PatentSpider(scrapy.Spider):
                 },
                 meta={
                     'url': url_first,
-                    'proxy': proxyString,
+                    # 'proxy': proxyString,
                     "requestType": 'PatentGetFirstPage'
                 },
                 dont_filter=True
@@ -95,7 +95,7 @@ class PatentSpider(scrapy.Spider):
         # 使用上次请求的cookie，否则无法翻页成功
         cookies_now = cookies
         # 获取上次请求的使用的proxy，这次请求用的cookie和proxy都和以前一致
-        proxyString = response.meta['proxy']
+        # proxyString = response.meta['proxy']
         pagerTitleCell = response.xpath('//div[@class="pagerTitleCell"]/text()').extract_first()
         if pagerTitleCell == None:
             print(response.text)
@@ -113,14 +113,14 @@ class PatentSpider(scrapy.Spider):
             return
         # todo 测试一下cookie一样换proxy行不行的通
         # 后续：测试完成，证明行得通
-        proxyDict = ApeProxyManager.getProxyDict()
-        proxyString = ApeProxyManager.proxyDict2String(proxyDict)
+        # proxyDict = ApeProxyManager.getProxyDict()
+        # proxyString = ApeProxyManager.proxyDict2String(proxyDict)
         for i in range(1, pagenum + 1):
             # 超过15页换cookie
             if i % 13 == 0:
-                proxyDict = ApeProxyManager.getProxyDict()
-                proxyString = ApeProxyManager.proxyDict2String(proxyDict)
-                cookies_now = CookieUtil.getPatentCookies(date, code, proxyDict)
+                # proxyDict = ApeProxyManager.getProxyDict()
+                # proxyString = ApeProxyManager.proxyDict2String(proxyDict)
+                cookies_now = CookieUtil.getPatentCookiesProxy(date, code)
             url =  self.base_url % i
             # logging.debug('换了proxy未换cookie看是否能请求成功')
             # logging.debug("发起请求获取第%d页信息 %s %s", (i, date, code))
@@ -136,7 +136,7 @@ class PatentSpider(scrapy.Spider):
                 },
                 meta={
                     'url':url,
-                    'proxy': proxyString,
+                    # 'proxy': proxyString,
                     "requestType": "PatentGetLinks"
                 },
                 dont_filter=True
@@ -156,13 +156,14 @@ class PatentSpider(scrapy.Spider):
             # yield item
             url = self.patent_content_pre_url % (date[0:4], patentCode)
             # print(date)
-            proxyDict = ApeProxyManager.getProxyDict()
-            proxyString = ApeProxyManager.proxyDict2String(proxyDict)
+            # proxyDict = ApeProxyManager.getProxyDict()
+            # proxyString = ApeProxyManager.proxyDict2String(proxyDict)
+            # logging.debug("准备发起解析专利请求,%s" % url)
             yield scrapy.Request(
                 url=url,
                 # cookies=cookies,
                 callback=self.parse_content,
-                dont_filter=True,
+                dont_filter=True, # 这里参与去重，专利文件不重复
                 cb_kwargs={
                     'url': url,
                     'code': code,
@@ -171,15 +172,15 @@ class PatentSpider(scrapy.Spider):
                 },
                 meta={
                     'url':url,
-                    'proxy': proxyString,
+                    # 'proxy': proxyString,
                     "requestType": "patentGetContent"
                 }
             )
 
     # 获取专利详情页内容
     def parse_content(self, response, url, code, date, requestType):
-        if self.generateErrorItem(response=response):
-            return
+        # if self.generateErrorItem(response=response):
+        #     return
         logging.info("解析专利：%s" % url)
         item = self.getDefaultPatentItem()
         item['type'] = SpiderTypeEnum.PATENT.value
