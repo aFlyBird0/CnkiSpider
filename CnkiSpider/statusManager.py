@@ -90,7 +90,7 @@ class StatusManager():
         else:
             # 上一次的日期已经是昨天了，代表爬完（今天的肯定不能爬，因为还没过完)
             if lastDate == yesterday:
-                logging.info("已经爬完所有任务！")
+                logging.info("已经爬完了任务中最后一天的最后一个学科分类，但页面请求和页面解析以及内容存取还在进行中！")
                 self.setStatusFinished()
                 self.closeConn()
                 return None

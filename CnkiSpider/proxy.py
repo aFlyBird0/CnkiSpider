@@ -44,7 +44,7 @@ class ApeProxyManager:
         '''
         try:
             response = requests.get(
-                url="http://tunnel-api.apeyun.com/d",
+                url="http://tunnel-api.apeyun.com/q",
                 params=ApeProxyManager.params,
                 headers={
                     "Content-Type": "text/plain; charset=utf-8",
@@ -59,9 +59,12 @@ class ApeProxyManager:
                     # return (res['data'][0]["ip"], res['data'][0]['port'])
                     # print(res)
                     data = res['data']
+                    # print(data)
+                    cls.proxies = []
                     for d in data:
-                        cls.proxies.append({'ip': d['ip'], 'port':d['port']})
+                        cls.proxies.append({'ip': d['ip'], 'port':str(d['port'])})
                     logging.debug('获取到的所有代理:%s', str(cls.proxies))
+                    # print(cls.proxies)
                     return True
                 elif res['code'] == 11010030:
                     # "当前IP已绑定到其它订单，请先解绑"
@@ -76,14 +79,14 @@ class ApeProxyManager:
             return False
 
     @classmethod
-    def getProxyTuple(cls):
+    def getProxyDict(cls):
         if cls.proxyLeft > 0:
             # proxy = cls.proxies[ApeProxyManager.limit-cls.proxyLeft]
             proxy = random.choice(cls.proxies)
-            logging.debug("代理复用，获取到的代理：%s:%d" % (proxy['ip'], proxy['port']))
+            logging.debug("代理复用，获取到的代理：%s:%s" % (proxy['ip'], proxy['port']))
             cls.proxyLeft -= 1
             # logging.debug("当前剩余代理数量：%s" % cls.proxyLeft)
-            return (proxy['ip'], proxy['port'])
+            return proxy
         else:
             for i in range(12):
                 if cls.getProxiesDicts():
@@ -92,9 +95,9 @@ class ApeProxyManager:
                     # proxy = cls.proxies[ApeProxyManager.limit-cls.proxyLeft]
                     proxy = random.choice(cls.proxies)
                     cls.proxyLeft -= 1
-                    logging.debug("请求新批次代理，获取到的代理：%s:%d" % (proxy['ip'], proxy['port']))
+                    logging.debug("请求新批次代理，获取到的代理：%s:%s" % (proxy['ip'], proxy['port']))
                     # logging.debug("当前剩余代理数量：%s" % cls.proxyLeft)
-                    return  (proxy['ip'], proxy['port'])
+                    return proxy
                 time.sleep(1)
             logging.error("连续十二次获取ip失败，程序退出")
             sys.exit()
@@ -104,7 +107,7 @@ class ApeProxyManager:
         if cls.proxyLeft > 0:
             # proxy = cls.proxies[ApeProxyManager.limit-cls.proxyLeft]
             proxy = random.choice(cls.proxies)
-            logging.debug("代理复用，获取到的代理：%s:%d" % (proxy['ip'], proxy['port']))
+            logging.debug("代理复用，获取到的代理：%s:%s" % (proxy['ip'], proxy['port']))
             cls.proxyLeft -= 1
             # logging.debug("当前剩余代理数量：%s" % cls.proxyLeft)
             return ("http://" + proxy['ip'] + ":" + str(proxy['port']))
@@ -115,7 +118,7 @@ class ApeProxyManager:
                     # proxy = cls.proxies[ApeProxyManager.limit-cls.proxyLeft]
                     proxy = random.choice(cls.proxies)
                     cls.proxyLeft -= 1
-                    logging.debug("请求新批次代理，获取到的代理：%s:%d" % (proxy['ip'], proxy['port']))
+                    logging.debug("请求新批次代理，获取到的代理：%s:%s" % (proxy['ip'], proxy['port']))
                     # logging.debug("当前剩余代理数量：%s" % cls.proxyLeft)
                     return  ("http://" + proxy['ip'] + ":" + str(proxy['port']))
                 # 代理一般是几秒才能请求一次，所以可能存在请求过快导致报错的情况，这时候暂停一秒再次请求
@@ -123,7 +126,18 @@ class ApeProxyManager:
             logging.error("连续十二次获取ip失败，程序退出")
             sys.exit()
 
+    @classmethod
+    def proxyDict2String(cls, proxy):
+        '''
+        将字典形式的代理转化为http://ip:port形式
+        :param proxy:
+        :return:
+        '''
+        if not proxy:
+            return proxy
+        return "http://" + proxy['ip'] + ":" + str(proxy['port'])
+
 if __name__ == '__main__':
-    for i in range(30):
-        proxy = ApeProxyManager.getProxyTuple()
-        print(proxy)
+    for i in range(1000):
+        proxy = ApeProxyManager.getProxyDict()
+        # print(proxy)

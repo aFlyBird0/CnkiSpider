@@ -9,9 +9,8 @@ from CnkiSpider.commonUtils import StringUtil
 from CnkiSpider.statusManager import StatusManager
 from CnkiSpider.commonUtils import SpiderTypeEnum
 from CnkiSpider.file_util import FileUtil
-from CnkiSpider.proxy import ProxyManager
+from CnkiSpider.proxy import ApeProxyManager
 from scrapy.http.cookies import CookieJar
-from CnkiSpider.proxy import ProxyManager
 from CnkiSpider.commonUtils import CookieUtil
 
 import logging
@@ -58,10 +57,14 @@ class PatentSpider(scrapy.Spider):
             date = nextDateAndCode[0]
             code = nextDateAndCode[1]
             logging.info("开始爬取专利链接,日期：%s，学科分类：%s" % (date, code))
-            cookies = CookieUtil.getPatentCookies(date, code)
+
+            proxyDict = ApeProxyManager.getProxyDict()
+            proxyString = ApeProxyManager.proxyDict2String(proxyDict)
+
+            cookies = CookieUtil.getPatentCookies(date, code, proxyDict)
 
             url_first = 'https://kns.cnki.net/kns/brief/brief.aspx?curpage=%d&RecordsPerPage=50&QueryID=10&ID=&turnpage=1&tpagemode=L&dbPrefix=SCPD&Fields=&DisplayMode=listmode&PageName=ASP.brief_result_aspx&isinEn=0&' % 1
-
+            # print("发起请求获取第一页信息", date, code)
             yield scrapy.Request(
                 url=url_first,
                 cookies=cookies,
@@ -74,6 +77,7 @@ class PatentSpider(scrapy.Spider):
                 },
                 meta={
                     'url': url_first,
+                    'proxy': proxyString,
                     "requestType": 'PatentGetFirstPage'
                 },
                 dont_filter=True
@@ -83,9 +87,15 @@ class PatentSpider(scrapy.Spider):
 
     # 第一页内容解析，获取页数信息
     def parse_first_page(self, response,code, date,cookies, requestType):
+        # print('进入parse_first_page成功')
         if self.generateErrorItem(response=response):
+            print('出错了,', response)
             return
+        # print('进入parse_first_page成功2')
+        # 使用上次请求的cookie，否则无法翻页成功
         cookies_now = cookies
+        # 获取上次请求的使用的proxy，这次请求用的cookie和proxy都和以前一致
+        proxyString = response.meta['proxy']
         pagerTitleCell = response.xpath('//div[@class="pagerTitleCell"]/text()').extract_first()
         if pagerTitleCell == None:
             print(response.text)
@@ -101,11 +111,19 @@ class PatentSpider(scrapy.Spider):
             with open(FileUtil.errorOverflowDir + 'papentOverflow.txt', 'a') as f:
                 f.write(date + ':' + code + '\n')
             return
+        # todo 测试一下cookie一样换proxy行不行的通
+        # 后续：测试完成，证明行得通
+        proxyDict = ApeProxyManager.getProxyDict()
+        proxyString = ApeProxyManager.proxyDict2String(proxyDict)
         for i in range(1, pagenum + 1):
+            # 超过15页换cookie
             if i % 13 == 0:
-                cookies_now = CookieUtil.getPatentCookies(date, code)  # 超过15页换cookie
-                pass
+                proxyDict = ApeProxyManager.getProxyDict()
+                proxyString = ApeProxyManager.proxyDict2String(proxyDict)
+                cookies_now = CookieUtil.getPatentCookies(date, code, proxyDict)
             url =  self.base_url % i
+            # logging.debug('换了proxy未换cookie看是否能请求成功')
+            # logging.debug("发起请求获取第%d页信息 %s %s", (i, date, code))
             yield scrapy.Request(
                 url=url,
                 cookies=cookies_now,
@@ -118,6 +136,7 @@ class PatentSpider(scrapy.Spider):
                 },
                 meta={
                     'url':url,
+                    'proxy': proxyString,
                     "requestType": "PatentGetLinks"
                 },
                 dont_filter=True
@@ -136,8 +155,9 @@ class PatentSpider(scrapy.Spider):
             # item['patentCode'] = patentCode
             # yield item
             url = self.patent_content_pre_url % (date[0:4], patentCode)
-            # cookies = self.getCookies(date, code)
             # print(date)
+            proxyDict = ApeProxyManager.getProxyDict()
+            proxyString = ApeProxyManager.proxyDict2String(proxyDict)
             yield scrapy.Request(
                 url=url,
                 # cookies=cookies,
@@ -151,6 +171,7 @@ class PatentSpider(scrapy.Spider):
                 },
                 meta={
                     'url':url,
+                    'proxy': proxyString,
                     "requestType": "patentGetContent"
                 }
             )
@@ -281,31 +302,31 @@ class PatentSpider(scrapy.Spider):
 
 
     # 根据日期，分类代码获取cookies
-    def getCookies(self, date, code, proxy = None):
-        search_url = 'http://kns.cnki.net/kns/request/SearchHandler.ashx'
-        times = time.strftime('%a %b %d %Y %H:%M:%S') + ' GMT+0800 (中国标准时间)'
-        params = {
-            "action": "",
-            "NaviCode": code,
-            "ua": "1.21",
-            "isinEn": "0",
-            "PageName": "ASP.brief_result_aspx",
-            "DbPrefix": "SCPD",
-            "DbCatalog": "中国专利数据库",
-            "ConfigFile": "SCPD.xml",
-            "db_opt": "SCOD",
-            "db_value": "中国专利数据库",
-            "date_gkr_from": date,
-            "date_gkr_to": date,
-            "his": '0',
-            '__': times
-        }
-        if proxy:
-            session_response = requests.get(search_url, params=params, proxy=proxy)
-        else:
-            session_response = requests.get(search_url, params=params)
-        cookies = requests.utils.dict_from_cookiejar(session_response.cookies)
-        return cookies
+    # def getCookies(self, date, code, proxy = None):
+    #     search_url = 'http://kns.cnki.net/kns/request/SearchHandler.ashx'
+    #     times = time.strftime('%a %b %d %Y %H:%M:%S') + ' GMT+0800 (中国标准时间)'
+    #     params = {
+    #         "action": "",
+    #         "NaviCode": code,
+    #         "ua": "1.21",
+    #         "isinEn": "0",
+    #         "PageName": "ASP.brief_result_aspx",
+    #         "DbPrefix": "SCPD",
+    #         "DbCatalog": "中国专利数据库",
+    #         "ConfigFile": "SCPD.xml",
+    #         "db_opt": "SCOD",
+    #         "db_value": "中国专利数据库",
+    #         "date_gkr_from": date,
+    #         "date_gkr_to": date,
+    #         "his": '0',
+    #         '__': times
+    #     }
+    #     if proxy:
+    #         session_response = requests.get(search_url, params=params, proxy=proxy)
+    #     else:
+    #         session_response = requests.get(search_url, params=params)
+    #     cookies = requests.utils.dict_from_cookiejar(session_response.cookies)
+    #     return cookies
 
 
 
@@ -320,13 +341,18 @@ class PatentSpider(scrapy.Spider):
         item['reqType'] = response.meta['requestType']
         errorFlag = False
         if not response.url:  # 接收到url==''时
+            print('这里是异常item url')
             logging.info('500')
             item['errType'] = '500'
             errorFlag = True
-            yield item
+            # todo 报错错误item
+            # yield item
         elif 'exception' in response.url:
+            print('这里是异常item exception')
             item = ErrorUrlItem()
             item['errType'] = 'Exception'
             errorFlag = True
-            yield item
+            # todo 保存错误item
+            # yield item
+        # print('errorFlag', errorFlag)
         return errorFlag

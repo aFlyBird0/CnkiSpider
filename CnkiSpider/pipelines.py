@@ -68,7 +68,7 @@ class CnkispiderPipeline:
         :return:
         '''
         resultPath = FileUtil.errorDir()
-        resultFilename = resultPath + 'allErrors'
+        resultFilename = resultPath + 'allErrors.csv'
         FileUtil.write_header(resultFilename, item.keys())
         item = self.removeLineFeed(item)
         with open(resultFilename, 'a', encoding='utf-8', newline='') as f:

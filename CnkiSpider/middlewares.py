@@ -10,7 +10,7 @@ from itemadapter import is_item, ItemAdapter
 from CnkiSpider.file_util import FileUtil
 from CnkiSpider.commonUtils import SpiderTypeEnum
 import logging
-from CnkiSpider.proxy import ProxyManager
+from CnkiSpider.proxy import ApeProxyManager
 
 
 class CnkispiderSpiderMiddleware:
