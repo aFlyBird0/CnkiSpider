@@ -114,61 +114,64 @@ class CnkispiderDownloaderMiddleware:
         :param spider:
         :return:
         '''
-        key = request.cb_kwargs
-        print(request)
-        print('全局异常拦截！！！\n')
-        print('异常', exception)
-        print(type(exception))
-        if spider.name == SpiderTypeEnum.PATENT.value:
-            # print(key)
-            if key['requestType'] == 'PatentGetFirstPage':
-                self.markDayError(type=SpiderTypeEnum.PATENT.value, code=key['code'], date=key['date'])
-            elif key['requestType'] == 'PatentGetLinks':
-                self.markPageError(type=SpiderTypeEnum.PATENT.value, code=key['code'], date=key['date'], pagenum=key['pagenum'])
-            elif key['requestType'] == "patentGetContent":
-                self.markLinkError(type=SpiderTypeEnum.PATENT.value, url=key['url'])
-            else:
-                print('这传的什么jb玩意？')
-            # self.markFirstError(key['code'], key['date'], pagenum)
-        elif 'error' in spider.name:
-            if 'pagenum' in key:
-                pagenum = key['pagenum']
-            else:
-                pagenum = 0
-            self.markSecondError(key['code'], key['date'], pagenum)
+    #     key = request.cb_kwargs
+    #     print(request)
+    #     print('全局异常拦截！！！\n')
+    #     print('异常', exception)
+    #     print(type(exception))
+    #     if spider.name == SpiderTypeEnum.PATENT.value:
+    #         # print(key)
+    #         if key['requestType'] == 'PatentGetFirstPage':
+    #             self.markDayError(type=SpiderTypeEnum.PATENT.value, code=key['code'], date=key['date'])
+    #         elif key['requestType'] == 'PatentGetLinks':
+    #             self.markPageError(type=SpiderTypeEnum.PATENT.value, code=key['code'], date=key['date'], pagenum=key['pagenum'])
+    #         elif key['requestType'] == "patentGetContent":
+    #             self.markLinkError(type=SpiderTypeEnum.PATENT.value, url=key['url'])
+    #         else:
+    #             print('这传的什么jb玩意？')
+    #         # self.markFirstError(key['code'], key['date'], pagenum)
+    #     elif 'error' in spider.name:
+    #         if 'pagenum' in key:
+    #             pagenum = key['pagenum']
+    #         else:
+    #             pagenum = 0
+    #         self.markSecondError(key['code'], key['date'], pagenum)
         return request
+    #
+    # def markLinkError(self, url, type):
+    #     with open(FileUtil.errorLinkDir + type + 'Error.txt', 'a', encoding='utf-8') as file:
+    #         file.write(url + '\n')
+    #
+    # def markSecondError(self, code, date, pagenum):
+    #     if pagenum == 0:
+    #         with open('error/erday.txt', 'a', encoding='utf-8') as f:
+    #             f.write(code + '&' + date + '\n')
+    #     else:
+    #         with open('error/erpage.txt', 'a', encoding='utf-8') as f:
+    #             f.write(code + '&' + date + '&' + str(pagenum) + '\n')
+    #
+    # def markFirstError(self, code, date, pagenum):
+    #     if pagenum == 0:
+    #         with open('error/errorday_' + date + '.txt', 'a', encoding='utf-8') as f:
+    #             f.write(code + '&' + date + '\n')
+    #     else:
+    #         with open('error/errorpage_' + date + 'txt', 'a', encoding='utf-8') as f:
+    #             f.write(code + '&' + date + '&' + str(pagenum) + '\n')
+    #
+    # def easyErrorRecoder(self, url):
+    #     with open('error/EasyErrorRecorder.txt', 'a', encoding='utf-8') as file:
+    #         file.write(url + '\n')
+    #
+    # def markDayError(self, type, code, date):
+    #     with open(FileUtil.errorDayDir + type +  '.txt', 'a', encoding='utf-8') as f:
+    #         f.write(code + '&' + date + '\n')
+    #
+    # def markPageError(self, type, code, date, pagenum):
+    #     with open(FileUtil.errorPageDir + type +  '.txt', 'a', encoding='utf-8') as f:
+    #         f.write(code + '&' + date + '&' + str(pagenum) + '\n')
+    #
 
-    def markLinkError(self, url, type):
-        with open(FileUtil.errorLinkDir + type + 'Error.txt', 'a', encoding='utf-8') as file:
-            file.write(url + '\n')
 
-    def markSecondError(self, code, date, pagenum):
-        if pagenum == 0:
-            with open('error/erday.txt', 'a', encoding='utf-8') as f:
-                f.write(code + '&' + date + '\n')
-        else:
-            with open('error/erpage.txt', 'a', encoding='utf-8') as f:
-                f.write(code + '&' + date + '&' + str(pagenum) + '\n')
-
-    def markFirstError(self, code, date, pagenum):
-        if pagenum == 0:
-            with open('error/errorday_' + date + '.txt', 'a', encoding='utf-8') as f:
-                f.write(code + '&' + date + '\n')
-        else:
-            with open('error/errorpage_' + date + 'txt', 'a', encoding='utf-8') as f:
-                f.write(code + '&' + date + '&' + str(pagenum) + '\n')
-
-    def easyErrorRecoder(self, url):
-        with open('error/EasyErrorRecorder.txt', 'a', encoding='utf-8') as file:
-            file.write(url + '\n')
-
-    def markDayError(self, type, code, date):
-        with open(FileUtil.errorDayDir + type +  '.txt', 'a', encoding='utf-8') as f:
-            f.write(code + '&' + date + '\n')
-
-    def markPageError(self, type, code, date, pagenum):
-        with open(FileUtil.errorPageDir + type +  '.txt', 'a', encoding='utf-8') as f:
-            f.write(code + '&' + date + '&' + str(pagenum) + '\n')
 
     def spider_opened(self, spider):
         spider.logger.info('Spider opened: %s' % spider.name)

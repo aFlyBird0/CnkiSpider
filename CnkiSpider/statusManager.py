@@ -11,7 +11,7 @@ from scrapy.utils.project import get_project_settings
 
 class StatusManager():
 
-    srcCodeFile = 'dataSrc/codeTest.txt'
+    srcCodeFile = 'dataSrc/code.txt'
     settings = get_project_settings()
     host = settings.get("MYSQL_HOST")
     port = int(settings.get("MYSQL_PORT"))
@@ -28,13 +28,19 @@ class StatusManager():
                                user=StatusManager.user, passwd=StatusManager.passwd,
                                database=StatusManager.database)
         self.cursor = self.conn.cursor()
+        today = datetime.date.today()
+        oneday = datetime.timedelta(days=1)
+        self.today = today.strftime('%Y-%m-%d')
+        self.yesterday = (today - oneday).strftime('%Y-%m-%d')
+        # 默认截止日期是昨天
+        self.endDate = self.yesterday
 
     def getLastDateAndCode(self):
         '''
         从数据库中读取上次爬的日期和学科分类，这次重新爬
         :return:
         '''
-        self.cursor.execute("select `curCode`, `curDate` from `%s` where `type` = '%s'" % (StatusManager.table, self.type))
+        self.cursor.execute("select `curCode`, `curDate`, `endDate` from `%s` where `type` = '%s'" % (StatusManager.table, self.type))
         result = self.cursor.fetchone()
         # 数据库没数据就返回空，报错给调用者，提示用户向mysql中添加数据
         # 判断type为专利的数据条是否存在
@@ -43,12 +49,19 @@ class StatusManager():
             logging.error('mysql的status表中缺失type为%s的数据条，请手动插入' % self.type)
             # self.conn.close()
             return None
-        # 判断日期是否存在
+        # 判断开始日期是否存在
         if result[1] == "" or result[1] is None:
-            print('mysql的status表中type为%s的数据条缺少关键的日期信息，请手动更新' % self.type)
+            print('mysql的status表中type为%s的数据条缺少关键的开始日期信息，请手动更新' % self.type)
             logging.error('mysql的status表中type为%s的数据条缺少关键的日期信息，请手动更新' % self.type)
             self.conn.close()
             return None
+        # 判断结束日期是否存在
+        if result[2] == "" or result[2] is None:
+            print('未设置初始结束日期信息，已自动设置为昨天')
+            self.setEndDate(endDate=self.yesterday)
+            self.endDate = self.yesterday
+        else:
+            self.endDate = result[2]
         # 判断学科代码是否存在，不存在就默认从code表第一个开始
         if result[0] == "" or result[0] is None:
             code = self.codes[0]
@@ -69,9 +82,7 @@ class StatusManager():
         '''
         lastDate, lastCode = self.getLastDateAndCode()
 
-        today = datetime.date.today()
         oneday = datetime.timedelta(days=1)
-        yesterday = (today - oneday).strftime('%Y-%m-%d')
 
         index = 0
         # 获取上一个code在当前的日期的记录
@@ -89,7 +100,7 @@ class StatusManager():
         # 所有学科分类的爬完了，爬下一天的
         else:
             # 上一次的日期已经是昨天了，代表爬完（今天的肯定不能爬，因为还没过完)
-            if lastDate == yesterday:
+            if lastDate == self.endDate:
                 logging.info("已经爬完了任务中最后一天的最后一个学科分类，但页面请求和页面解析以及内容存取还在进行中！")
                 self.setStatusFinished()
                 self.closeConn()
@@ -118,6 +129,14 @@ class StatusManager():
         cursor.execute(updateSql)
         conn.commit()
         conn.close()
+
+    def setEndDate(self, endDate):
+        '''
+        设置默认截止日期为昨天
+        :return:
+        '''
+        self.cursor.execute("UPDATE `%s` SET endDate = '%s' WHERE type = '%s'" % (StatusManager.table, endDate, self.type))
+        self.conn.commit()
 
     def setStatusRunning(self):
         '''

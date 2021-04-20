@@ -7,11 +7,10 @@ from CnkiSpider.items import PatentContentItem
 from CnkiSpider.items import ErrorUrlItem
 from CnkiSpider.commonUtils import StringUtil
 from CnkiSpider.statusManager import StatusManager
-from CnkiSpider.commonUtils import SpiderTypeEnum
+from CnkiSpider.commonUtils import SpiderTypeEnum, CookieUtil, ErrorUtil
 from CnkiSpider.file_util import FileUtil
 from CnkiSpider.proxy import ApeProxyManager
 from scrapy.http.cookies import CookieJar
-from CnkiSpider.commonUtils import CookieUtil
 
 import logging
 import datetime
@@ -88,8 +87,7 @@ class PatentSpider(scrapy.Spider):
     # 第一页内容解析，获取页数信息
     def parse_first_page(self, response,code, date,cookies, requestType):
         # print('进入parse_first_page成功')
-        if self.generateErrorItem(response=response):
-            print('出错了,', response)
+        if ErrorUtil.isBadResponse(response=response):
             return
         # print('进入parse_first_page成功2')
         # 使用上次请求的cookie，否则无法翻页成功
@@ -98,8 +96,10 @@ class PatentSpider(scrapy.Spider):
         # proxyString = response.meta['proxy']
         pagerTitleCell = response.xpath('//div[@class="pagerTitleCell"]/text()').extract_first()
         if pagerTitleCell == None:
-            print(response.text)
+            # print(response.text)
+            # 这里的url一定不是空的，如果是空的话前面已经return了不用担心
             logging.error("论文页面解析出现错误", code, date, response.meta['url'], response.text)
+            ErrorUtil.markDayError(code=code, date=date, type=SpiderTypeEnum.PATENT.value)
             return
         page = pagerTitleCell.strip()
         num = int(re.findall(r'\d+', page.replace(',', ''))[0])  # 文献数
@@ -111,7 +111,7 @@ class PatentSpider(scrapy.Spider):
             with open(FileUtil.errorOverflowDir + 'papentOverflow.txt', 'a') as f:
                 f.write(date + ':' + code + '\n')
             return
-        # todo 测试一下cookie一样换proxy行不行的通
+        # 测试一下cookie一样换proxy行不行的通
         # 后续：测试完成，证明行得通
         # proxyDict = ApeProxyManager.getProxyDict()
         # proxyString = ApeProxyManager.proxyDict2String(proxyDict)
@@ -143,7 +143,7 @@ class PatentSpider(scrapy.Spider):
             )
 
     def parse_page_links(self,response,pagenum,code,date,requestType):
-        if self.generateErrorItem(response=response):
+        if ErrorUtil.isBadResponse(response=response):
             return
         link = response.xpath('//a[@class="fz14"]/@href').extract()  # 返回链接地址href列表
         if len(link) == 0:
@@ -160,7 +160,7 @@ class PatentSpider(scrapy.Spider):
             # proxyString = ApeProxyManager.proxyDict2String(proxyDict)
             # logging.debug("准备发起解析专利请求,%s" % url)
             yield scrapy.Request(
-                url=url,
+                url=url[:38],
                 # cookies=cookies,
                 callback=self.parse_content,
                 dont_filter=True, # 这里参与去重，专利文件不重复
@@ -179,8 +179,8 @@ class PatentSpider(scrapy.Spider):
 
     # 获取专利详情页内容
     def parse_content(self, response, url, code, date, requestType):
-        # if self.generateErrorItem(response=response):
-        #     return
+        if ErrorUtil.isBadResponse(response=response):
+            return
         logging.info("解析专利：%s" % url)
         item = self.getDefaultPatentItem()
         item['type'] = SpiderTypeEnum.PATENT.value
@@ -333,7 +333,7 @@ class PatentSpider(scrapy.Spider):
 
     def generateErrorItem(self, response):
         '''
-        判断是否出现错误，如果有错误，yield错误item，并返回出错标志
+        （已弃用）判断是否出现错误，如果有错误，yield错误item，并返回出错标志
         :param response:
         :return:
         '''
@@ -357,3 +357,5 @@ class PatentSpider(scrapy.Spider):
             # yield item
         # print('errorFlag', errorFlag)
         return errorFlag
+
+

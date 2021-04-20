@@ -9,7 +9,7 @@ import scrapy
 
 from CnkiSpider.items import *
 from CnkiSpider.statusManager import StatusManager
-from CnkiSpider.commonUtils import StringUtil, SpiderTypeEnum
+from CnkiSpider.commonUtils import StringUtil, SpiderTypeEnum, CookieUtil, ErrorUtil
 from CnkiSpider.file_util import FileUtil
 import os
 import logging
@@ -52,7 +52,7 @@ class PaperAchSpider(scrapy.Spider):
             code = nextDateAndCode[1]
             logging.info("开始爬取论文和成果链接,日期：%s，学科分类：%s" % (date, code))
             # 根据日期、code获取cookies
-            cookies = self.getCookies(date,code)
+            cookies = CookieUtil.getPaperAchCookiesProxy(date,code)
             url_first = self.base_url + '1'
             yield scrapy.Request(
                 url=url_first,
@@ -61,7 +61,8 @@ class PaperAchSpider(scrapy.Spider):
                 cb_kwargs={
                     'cookies': cookies,
                     "code": code,
-                    "date": date
+                    "date": date,
+                    "requestType": "PaperAchGetFirstPage"
                 },
                 meta={
                     'url': url_first,
@@ -74,7 +75,7 @@ class PaperAchSpider(scrapy.Spider):
 
     # 第一页内容解析，获取页数信息
     def parse_first_page(self,response,cookies,code,date):
-        if self.generateErrorItem(response=response):
+        if ErrorUtil.isBadResponse(response=response):
             return
         cookies_now = cookies
         pagerTitleCell = response.xpath('//div[@class="pagerTitleCell"]/text()').extract_first()
@@ -95,7 +96,7 @@ class PaperAchSpider(scrapy.Spider):
             return
         for i in range(1,pagenum+1):
             if i % 13 == 0:
-                cookies_now = self.getCookies(date,code) # 超过15页换cookie
+                cookies_now = CookieUtil.getPaperAchCookiesProxy(date,code) # 超过15页换cookie
             url = self.base_url + str(i)
             yield scrapy.Request(
                 url=url,
@@ -104,7 +105,8 @@ class PaperAchSpider(scrapy.Spider):
                 cb_kwargs={
                     "pagenum": i,
                     "code": code,
-                    "date": date
+                    "date": date,
+                    "requestType": "PaperAchGetLinks"
                 },
                 meta={
                     'url': url,
@@ -115,7 +117,7 @@ class PaperAchSpider(scrapy.Spider):
 
     # 解析列表内容获取链接
     def parse_page_links(self,response,pagenum,code,date):
-        if self.generateErrorItem(response=response):
+        if ErrorUtil.isBadResponse(response=response):
             return
         rows = response.xpath('//table[@class="GridTableContent"]/tr')
         if len(rows) < 1:
@@ -149,7 +151,8 @@ class PaperAchSpider(scrapy.Spider):
                             "requestType": "JournalGetContent"
                         },
                         meta={
-                            'url': url
+                            'url': url,
+                            "requestType": "JournalGetContent"
                         }
                     )
                 elif db == '博士' or db == '硕士':
@@ -168,7 +171,8 @@ class PaperAchSpider(scrapy.Spider):
                             "requestType": "BoshuoGetContent"
                         },
                         meta={
-                            'url': url
+                            'url': url,
+                            "requestType": "JournalGetContent"
                         }
                     )
                 elif db == '科技成果':
@@ -187,7 +191,8 @@ class PaperAchSpider(scrapy.Spider):
                             "requestType": "AchGetContent"
                         },
                         meta={
-                            'url': url
+                            'url': url,
+                            "requestType": "JournalGetContent"
                         }
                     )
 
@@ -197,7 +202,7 @@ class PaperAchSpider(scrapy.Spider):
         # 跳过知网错误链接
         # if url == 'https://kns.cnki.net/KCMS/detail/Error.aspx':
         #     return
-        if self.generateErrorItem(response=response):
+        if ErrorUtil.isBadResponse(response=response):
             return
         logging.info("解析期刊：%s" % url)
         item = self.getDefaultJournalItem()
@@ -252,7 +257,7 @@ class PaperAchSpider(scrapy.Spider):
     def parse_boshuo_content(self, response, url, code, date, requestType):
         # if url == 'https://kns.cnki.net/KCMS/detail/Error.aspx':
         #     return
-        if self.generateErrorItem(response=response):
+        if ErrorUtil.isBadResponse(response=response):
             return
         logging.info("解析期刊：%s" % url)
         item = self.getDefaultBoshuoItem()
@@ -335,7 +340,7 @@ class PaperAchSpider(scrapy.Spider):
         # 跳过知网错误链接
         # if url == 'https://kns.cnki.net/KCMS/detail/Error.aspx':
         #     return
-        if self.generateErrorItem(response=response):
+        if ErrorUtil.isBadResponse(response=response):
             return
         logging.info("解析期刊：%s" % url)
         item = self.getDefaultAchItem()
@@ -580,50 +585,3 @@ class PaperAchSpider(scrapy.Spider):
         else:
             with open('error/errorpage_' + date + '.txt', 'a', encoding='utf-8') as f:
                 f.write(code + '&' + date + '&' + str(pagenum) + '\n')
-
-
-    # 根据日期，分类代码获取cookies
-    def getCookies(self, date, code):
-        search_url = 'https://kns.cnki.net/kns/request/SearchHandler.ashx/'
-        now_time = time.strftime('%a %b %d %Y %H:%M:%S') + ' GMT+0800 (中国标准时间)'
-        params = {
-            "action": "",
-            "NaviCode": code,
-            "ua": "1.21",
-            "isinEn": "1",
-            "PageName": "ASP.brief_result_aspx",
-            "DbPrefix": "SCDB",
-            "DbCatalog": "中国学术文献网络出版总库",
-            "ConfigFile": "SCDB.xml",
-            "db_opt": "CJFQ,CJRF,CJFN,CDFD,CMFD,CPFD,IPFD,CCND,BDZK,CISD,SNAD,CCJD",
-            "publishdate_from": date,
-            "publishdate_to": date,
-            "CKB_extension": "ZYW",
-            "his": "0",
-            '__': now_time
-        }
-        session_response = requests.get(search_url, params=params)
-        cookies = requests.utils.dict_from_cookiejar(session_response.cookies)
-        return cookies
-
-    def generateErrorItem(self, response):
-        '''
-        判断是否出现错误，如果有错误，yield错误item，并返回出错标志
-        :param response:
-        :return:
-        '''
-        item = ErrorUrlItem()
-        item['url'] = response.meta['url']
-        item['reqType'] = response.meta['requestType']
-        errorFlag = False
-        if not response.url:  # 接收到url==''时
-            logging.info('500')
-            item['errType'] = '500'
-            errorFlag = True
-            yield item
-        elif 'exception' in response.url:
-            item = ErrorUrlItem()
-            item['errType'] = 'Exception'
-            errorFlag = True
-            yield item
-        return errorFlag
