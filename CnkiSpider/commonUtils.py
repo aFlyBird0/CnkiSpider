@@ -193,7 +193,7 @@ class ErrorUtil():
         :param response:
         :return:
         '''
-        if not response.url:  # 接收到url==''时
+        if (not response.url) or (response.url == 'exception'):  # 接收到url==''或'exception'时
             return True
         else:
             return False
@@ -203,28 +203,28 @@ class ErrorUtil():
         with open(FileUtil.errorLinkDir + type + 'Error.txt', 'a', encoding='utf-8') as file:
             file.write(url + '\n')
 
-    @classmethod
-    def markSecondError(cls, code, date, pagenum):
-        if pagenum == 0:
-            with open('error/erday.txt', 'a', encoding='utf-8') as f:
-                f.write(code + '&' + date + '\n')
-        else:
-            with open('error/erpage.txt', 'a', encoding='utf-8') as f:
-                f.write(code + '&' + date + '&' + str(pagenum) + '\n')
+    # @classmethod
+    # def markSecondError(cls, code, date, pagenum):
+    #     if pagenum == 0:
+    #         with open('error/erday.txt', 'a', encoding='utf-8') as f:
+    #             f.write(code + '&' + date + '\n')
+    #     else:
+    #         with open('error/erpage.txt', 'a', encoding='utf-8') as f:
+    #             f.write(code + '&' + date + '&' + str(pagenum) + '\n')
 
-    @classmethod
-    def markFirstError(cls, code, date, pagenum):
-        if pagenum == 0:
-            with open('error/errorday_' + date + '.txt', 'a', encoding='utf-8') as f:
-                f.write(code + '&' + date + '\n')
-        else:
-            with open('error/errorpage_' + date + 'txt', 'a', encoding='utf-8') as f:
-                f.write(code + '&' + date + '&' + str(pagenum) + '\n')
+    # @classmethod
+    # def markFirstError(cls, code, date, pagenum):
+    #     if pagenum == 0:
+    #         with open('error/errorday_' + date + '.txt', 'a', encoding='utf-8') as f:
+    #             f.write(code + '&' + date + '\n')
+    #     else:
+    #         with open('error/errorpage_' + date + 'txt', 'a', encoding='utf-8') as f:
+    #             f.write(code + '&' + date + '&' + str(pagenum) + '\n')
 
-    @classmethod
-    def easyErrorRecoder(cls, url):
-        with open('error/EasyErrorRecorder.txt', 'a', encoding='utf-8') as file:
-            file.write(url + '\n')
+    # @classmethod
+    # def easyErrorRecoder(cls, url):
+    #     with open('error/EasyErrorRecorder.txt', 'a', encoding='utf-8') as file:
+    #         file.write(url + '\n')
 
     @classmethod
     def markDayError(cls, type, code, date):

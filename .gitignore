@@ -13,4 +13,8 @@ author_output/
 # Editor directories and files
 .idea
 
+# scrapyd 打包文件
+*.egg
+build/
+
 **/__pycache__

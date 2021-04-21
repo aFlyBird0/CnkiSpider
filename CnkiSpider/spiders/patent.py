@@ -160,7 +160,7 @@ class PatentSpider(scrapy.Spider):
             # proxyString = ApeProxyManager.proxyDict2String(proxyDict)
             # logging.debug("准备发起解析专利请求,%s" % url)
             yield scrapy.Request(
-                url=url[:38],
+                url=url,
                 # cookies=cookies,
                 callback=self.parse_content,
                 dont_filter=True, # 这里参与去重，专利文件不重复

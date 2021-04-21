@@ -74,15 +74,14 @@ class PaperAchSpider(scrapy.Spider):
         logging.info('所有论文成果链接已经获取结束！')
 
     # 第一页内容解析，获取页数信息
-    def parse_first_page(self,response,cookies,code,date):
+    def parse_first_page(self,response,cookies,code,date, requestType):
         if ErrorUtil.isBadResponse(response=response):
             return
         cookies_now = cookies
         pagerTitleCell = response.xpath('//div[@class="pagerTitleCell"]/text()').extract_first()
         if pagerTitleCell == None:
-            logging.info(response.text)
-            logging.info(response.text)
-            self.markFirstError(code,date,0)
+            logging.error('第一页解析出错，以下是获取到的response:%s' % response.text)
+            ErrorUtil.markDayError(code=code, date=date, type=SpiderTypeEnum.PAPER_AND_ACH.value)
             return
         page = pagerTitleCell.strip()
         num = int(re.findall(r'\d+', page.replace(',', ''))[0]) # 文献数
@@ -116,14 +115,14 @@ class PaperAchSpider(scrapy.Spider):
             )
 
     # 解析列表内容获取链接
-    def parse_page_links(self,response,pagenum,code,date):
+    def parse_page_links(self,response,pagenum,code,date,requestType):
         if ErrorUtil.isBadResponse(response=response):
             return
         rows = response.xpath('//table[@class="GridTableContent"]/tr')
         if len(rows) < 1:
             # 某一页没有获取到列表内容
-            logging.error('页面无链接，以下是获取到的response:', response.text)
-            self.markFirstError(code,date,pagenum)
+            logging.error('页面无链接，以下是获取到的response:%s' % response.text)
+            ErrorUtil.markPageError(code=code,date=date,pagenum=pagenum, type=SpiderTypeEnum.PAPER_AND_ACH.value)
             return
         else:
             rows.pop(0) # 去掉标题行
@@ -172,7 +171,7 @@ class PaperAchSpider(scrapy.Spider):
                         },
                         meta={
                             'url': url,
-                            "requestType": "JournalGetContent"
+                            "requestType": "BoshuoGetContent"
                         }
                     )
                 elif db == '科技成果':
@@ -192,7 +191,7 @@ class PaperAchSpider(scrapy.Spider):
                         },
                         meta={
                             'url': url,
-                            "requestType": "JournalGetContent"
+                            "requestType": "AchGetContent"
                         }
                     )
 
@@ -567,21 +566,13 @@ class PaperAchSpider(scrapy.Spider):
                         organListOneAuthor.append(organList[int(index)-1])
                     except IndexError as e:
                         # 这段异常调试代码已经找到了数组越界成因，主要是之前单位字段提取有点问题
-                        logging.error('异常来啦！')
-                        logging.error('标题', response.xpath('//h1/text()').extract_first())
-                        logging.error('上标列表', subs)
-                        logging.error('目前上标', index)
-                        logging.error('单位列表', organList)
-                        logging.error('作者列表', authorList)
+                        # logging.error('异常来啦！')
+                        # logging.error('标题:%s' % response.xpath('//h1/text()').extract_first())
+                        # logging.error('上标列表', subs)
+                        # logging.error('目前上标', index)
+                        # logging.error('单位列表', organList)
+                        # logging.error('作者列表', authorList)
                         # 重新抛出
                         raise e
                 authorOrganDict[authorList[i]] = organListOneAuthor
         return str(authorOrganDict)
-
-    def markFirstError(self, code, date, pagenum):
-        if pagenum == 0:
-            with open('error/errorday_' + date + '.txt', 'a', encoding='utf-8') as f:
-                f.write(code + '&' + date + '\n')
-        else:
-            with open('error/errorpage_' + date + '.txt', 'a', encoding='utf-8') as f:
-                f.write(code + '&' + date + '&' + str(pagenum) + '\n')
