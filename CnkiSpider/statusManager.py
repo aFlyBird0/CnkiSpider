@@ -11,7 +11,7 @@ from scrapy.utils.project import get_project_settings
 
 class StatusManager():
 
-    srcCodeFile = 'dataSrc/code.txt'
+    srcCodeFile = 'dataSrc/codeTest.txt'
     settings = get_project_settings()
     host = settings.get("MYSQL_HOST")
     port = int(settings.get("MYSQL_PORT"))

@@ -6,6 +6,7 @@ from CnkiSpider.proxy import ApeProxyManager
 import logging
 import scrapy
 from CnkiSpider.file_util import FileUtil
+from scrapy.utils.project import get_project_settings
 
 class StringUtil:
 
@@ -95,9 +96,14 @@ class CookieUtil():
             "his": '0',
             '__': times
         }
-        # logging.debug('requests获取cookis, 代理为%s' % str(proxyDict))
-        proxyDict = ApeProxyManager.getProxyDict()
-        session_response = requests.get(search_url, params=params, proxies=cls.configReqestsProxyMeta(proxyDict))
+
+        settings = get_project_settings()
+        if settings.get("PROXY_OPEN"):
+            # logging.debug('requests获取cookis, 代理为%s' % str(proxyDict))
+            proxyDict = ApeProxyManager.getProxyDict()
+            session_response = requests.get(search_url, params=params, proxies=cls.configReqestsProxyMeta(proxyDict))
+        else:
+            session_response = requests.get(search_url, params=params)
         cookies = requests.utils.dict_from_cookiejar(session_response.cookies)
         return cookies
 

@@ -8,6 +8,8 @@ from scrapy.core.downloader.handlers.http11 import TunnelError
 from CnkiSpider.file_util import FileUtil
 from CnkiSpider.commonUtils import SpiderTypeEnum, ErrorUtil
 import twisted
+from scrapy.utils.project import get_project_settings
+
 
 
 class ProcessAllExceptionMiddleware(object):
@@ -110,9 +112,13 @@ class RetryAndGetFailedUrl(RetryMiddleware):
         if response.status in self.retry_http_codes:
             reason = response_status_message(response.status)
             # 在此处进行自己的操作，如删除不可用代理，打日志等
-            proxyString = ApeProxyManager.getProxyString()
-            request.meta["proxy"] = proxyString
-            logging.warning('切换代理(%s)重试中(%s)' % (request.url, proxyString))
+            settings = get_project_settings()
+            if settings.get("PROXY_OPEN"):
+                proxyString = ApeProxyManager.getProxyString()
+                request.meta["proxy"] = proxyString
+                logging.warning('切换代理(%s)重试中(%s)' % (request.url, proxyString))
+            else:
+                logging.warning('未启用代理，重试中(%s)' % (request.url))
             self.save_url(request, spider)
             return self._retry(request, reason, spider) or response
         return response
@@ -122,10 +128,14 @@ class RetryAndGetFailedUrl(RetryMiddleware):
             isinstance(exception, self.EXCEPTIONS_TO_RETRY)
             and not request.meta.get('dont_retry', False)
         ):
-            logging.warning('错误异常捕捉:%s,开始重试' % exception)
-            proxyString = ApeProxyManager.getProxyString()
-            request.meta["proxy"] = proxyString
-            logging.warning('切换代理(%s)重试中(%s)' % (request.url, proxyString))
+            # logging.warning('错误异常捕捉:%s,开始重试' % exception)
+            settings = get_project_settings()
+            if settings.get("PROXY_OPEN"):
+                proxyString = ApeProxyManager.getProxyString()
+                request.meta["proxy"] = proxyString
+                logging.warning('切换代理(%s)重试中(%s)' % (request.url, proxyString))
+            else:
+                logging.warning('未启用代理，重试中(%s)' % (request.url))
             self.save_url(request, spider)
             return self._retry(request, exception, spider)
 
