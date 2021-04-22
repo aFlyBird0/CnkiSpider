@@ -110,8 +110,9 @@ class RetryAndGetFailedUrl(RetryMiddleware):
         if response.status in self.retry_http_codes:
             reason = response_status_message(response.status)
             # 在此处进行自己的操作，如删除不可用代理，打日志等
-            logging.info('切换代理重试中(%s)' % request.url)
-            request.meta["proxy"] = ApeProxyManager.getProxyString()
+            proxyString = ApeProxyManager.getProxyString()
+            request.meta["proxy"] = proxyString
+            logging.warning('切换代理(%s)重试中(%s)' % (request.url, proxyString))
             self.save_url(request, spider)
             return self._retry(request, reason, spider) or response
         return response
@@ -121,9 +122,10 @@ class RetryAndGetFailedUrl(RetryMiddleware):
             isinstance(exception, self.EXCEPTIONS_TO_RETRY)
             and not request.meta.get('dont_retry', False)
         ):
-            logging.info('错误异常捕捉:%s,开始重试' % exception)
-            logging.info('切换代理重试中(%s)' % request.url)
-            request.meta["proxy"] = ApeProxyManager.getProxyString()
+            logging.warning('错误异常捕捉:%s,开始重试' % exception)
+            proxyString = ApeProxyManager.getProxyString()
+            request.meta["proxy"] = proxyString
+            logging.warning('切换代理(%s)重试中(%s)' % (request.url, proxyString))
             self.save_url(request, spider)
             return self._retry(request, exception, spider)
 
@@ -136,7 +138,7 @@ class RetryAndGetFailedUrl(RetryMiddleware):
         retries = request.meta.get('retry_times', 0) + 1
         if retries > self.max_retry_times:
             key = request.cb_kwargs
-            logging.info("连续请求%s次，放弃请求" % str(retries))
+            logging.warning("连续请求%s次，放弃请求" % str(retries))
             if spider.name == SpiderTypeEnum.PATENT.value:
                 if key['requestType'] == 'PatentGetFirstPage':
                     ErrorUtil.markDayError(type=SpiderTypeEnum.PATENT.value, code=key['code'], date=key['date'])

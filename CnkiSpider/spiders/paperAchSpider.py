@@ -127,7 +127,7 @@ class PaperAchSpider(scrapy.Spider):
         else:
             rows.pop(0) # 去掉标题行
             num = len(rows) # 该页链接数
-            logging.info("爬取%s %s 第%d页: %d个链接" % (code,date,pagenum,num))
+            logging.debug("爬取%s %s 第%d页: %d个链接" % (code,date,pagenum,num))
             for row in rows:
                 link = row.xpath('./td/a[@class="fz14"]/@href').extract_first()
                 link_params = link.split('&')
@@ -203,7 +203,7 @@ class PaperAchSpider(scrapy.Spider):
         #     return
         if ErrorUtil.isBadResponse(response=response):
             return
-        logging.info("解析期刊：%s" % url)
+        logging.debug("解析期刊：%s" % url)
         item = self.getDefaultJournalItem()
         item = JournalContentItem()
         item['naviCode'] = code
@@ -258,7 +258,7 @@ class PaperAchSpider(scrapy.Spider):
         #     return
         if ErrorUtil.isBadResponse(response=response):
             return
-        logging.info("解析期刊：%s" % url)
+        logging.debug("解析博硕：%s" % url)
         item = self.getDefaultBoshuoItem()
         # 跳过知网错误链接
         item['naviCode'] = code
@@ -341,7 +341,7 @@ class PaperAchSpider(scrapy.Spider):
         #     return
         if ErrorUtil.isBadResponse(response=response):
             return
-        logging.info("解析期刊：%s" % url)
+        logging.debug("解析成果：%s" % url)
         item = self.getDefaultAchItem()
         item['naviCode'] = code
         item['type'] = SpiderTypeEnum.ACHIEVEMENT.value

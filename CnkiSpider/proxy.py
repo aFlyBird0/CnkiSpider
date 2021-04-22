@@ -112,7 +112,7 @@ class ApeProxyManager:
             # logging.debug("当前剩余代理数量：%s" % cls.proxyLeft)
             return ("http://" + proxy['ip'] + ":" + str(proxy['port']))
         else:
-            for i in range(12):
+            for i in range(24):
                 if cls.getProxiesDicts():
                     cls.proxyLeft = ApeProxyManager.limit * ApeProxyManager.reuseMAX
                     # proxy = cls.proxies[ApeProxyManager.limit-cls.proxyLeft]
@@ -123,7 +123,7 @@ class ApeProxyManager:
                     return  ("http://" + proxy['ip'] + ":" + str(proxy['port']))
                 # 代理一般是几秒才能请求一次，所以可能存在请求过快导致报错的情况，这时候暂停一秒再次请求
                 time.sleep(1)
-            logging.error("连续十二次获取ip失败，程序退出")
+            logging.error("连续24次获取ip失败，程序退出")
             sys.exit()
 
     @classmethod

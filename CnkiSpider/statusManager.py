@@ -33,7 +33,7 @@ class StatusManager():
         self.today = today.strftime('%Y-%m-%d')
         self.yesterday = (today - oneday).strftime('%Y-%m-%d')
         # 默认截止日期是昨天
-        self.endDate = self.yesterday
+        self.endDate = None
 
     def getLastDateAndCode(self):
         '''
@@ -58,10 +58,12 @@ class StatusManager():
         # 判断结束日期是否存在
         if result[2] == "" or result[2] is None:
             print('未设置初始结束日期信息，已自动设置为昨天')
+            logging.info('未设置初始结束日期信息，已自动设置为昨天')
             self.setEndDate(endDate=self.yesterday)
             self.endDate = self.yesterday
         else:
             self.endDate = result[2]
+            logging.info("获取的终止日期为 %s" % self.endDate)
         # 判断学科代码是否存在，不存在就默认从code表第一个开始
         if result[0] == "" or result[0] is None:
             code = self.codes[0]
@@ -84,6 +86,12 @@ class StatusManager():
 
         oneday = datetime.timedelta(days=1)
 
+        if lastDate > self.endDate:
+            logging.info("已经爬完了任务中最后一天的最后一个学科分类，但页面请求和页面解析以及内容存取还在进行中！")
+            self.setStatusFinished()
+            self.closeConn()
+            return None
+
         index = 0
         # 获取上一个code在当前的日期的记录
         for i in range(len(self.codes)):
@@ -100,7 +108,7 @@ class StatusManager():
         # 所有学科分类的爬完了，爬下一天的
         else:
             # 上一次的日期已经是昨天了，代表爬完（今天的肯定不能爬，因为还没过完)
-            if lastDate == self.endDate:
+            if lastDate >= self.endDate:
                 logging.info("已经爬完了任务中最后一天的最后一个学科分类，但页面请求和页面解析以及内容存取还在进行中！")
                 self.setStatusFinished()
                 self.closeConn()
@@ -112,7 +120,7 @@ class StatusManager():
                 day = int(lastDate[8:10])
                 nextDay = (datetime.date(year, month, day) + oneday).strftime('%Y-%m-%d')
                 self.markCurrentDateAndCode(nextDay, self.codes[0])
-                logging.info("获取的下一个日期、学科分类为：%s，%s" % (nextDay, self.codes[0]))
+                logging.debug("获取的下一个日期、学科分类为：%s，%s" % (nextDay, self.codes[0]))
                 # print("获取的下一个日期、学科分类为：%s，%s" % (lastDate, self.codes[index+1]))
                 self.setStatusRunning()
                 return nextDay, self.codes[0]

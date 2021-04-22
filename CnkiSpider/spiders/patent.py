@@ -148,7 +148,7 @@ class PatentSpider(scrapy.Spider):
         link = response.xpath('//a[@class="fz14"]/@href').extract()  # 返回链接地址href列表
         if len(link) == 0:
             return
-        logging.info("日期：%s,学科分类：%s，第%d页有%d个专利" % (date, code, pagenum+1, len(link)))
+        logging.debug("日期：%s,学科分类：%s，第%d页有%d个专利" % (date, code, pagenum+1, len(link)))
         for j in range(len(link)):
             # item = PatentCodeItem()
             patentCode = re.search(r'filename=(.*)$', link[j]).group(1)
@@ -181,7 +181,7 @@ class PatentSpider(scrapy.Spider):
     def parse_content(self, response, url, code, date, requestType):
         if ErrorUtil.isBadResponse(response=response):
             return
-        logging.info("解析专利：%s" % url)
+        logging.debug("解析专利：%s" % url)
         item = self.getDefaultPatentItem()
         item['type'] = SpiderTypeEnum.PATENT.value
         item['naviCode'] = code # 学科分类
