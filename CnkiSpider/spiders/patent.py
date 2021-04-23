@@ -33,6 +33,7 @@ class PatentSpider(RedisSpider):
         # self.base_url = 'http://dbpub.cnki.net/grid2008/dbpub/detail.aspx?dbcode=scpd&'
         self.base_url = 'https://kns.cnki.net/kns/brief/brief.aspx?curpage=%d&RecordsPerPage=50&QueryID=10&ID=&turnpage=1&tpagemode=L&dbPrefix=SCPD&Fields=&DisplayMode=listmode&PageName=ASP.brief_result_aspx&isinEn=0&'
         self.patent_content_pre_url = 'https://kns.cnki.net/kcms/detail/detail.aspx?dbcode=SCPD&dbname=SCPD%s&filename=%s'
+        self.sm = StatusManager(SpiderTypeEnum.PATENT)
 
     # 获取setting中的年份值
     @classmethod
@@ -47,8 +48,8 @@ class PatentSpider(RedisSpider):
         # util = PatentUtil()
         # util.generateUrlsDir()
         # dates = util.getAllDayPerYear()
-        sm = StatusManager(SpiderTypeEnum.PATENT)
-        lastDateAndCode = sm.getLastDateAndCode()
+
+        lastDateAndCode = self.sm.getLastDateAndCode()
         if lastDateAndCode is None:
             return
         # 上次爬取可能进行到了一半，所以要重爬一下
@@ -61,9 +62,31 @@ class PatentSpider(RedisSpider):
             # proxyDict = ApeProxyManager.getProxyDict()
             # proxyString = ApeProxyManager.proxyDict2String(proxyDict)
 
+            url_first = 'https://kns.cnki.net/kns/brief/brief.aspx?curpage=%d&RecordsPerPage=50&QueryID=10&ID=&turnpage=1&tpagemode=L&dbPrefix=SCPD&Fields=&DisplayMode=listmode&PageName=ASP.brief_result_aspx&isinEn=0&' % 1
+
+            if code == self.sm.getCodeFirst():
+                # 获取全年信息
+                cookiesAllCodeForOneDate = CookieUtil.getPatentCookiesProxy(date, "*")
+                yield scrapy.Request(
+                    url=url_first,
+                    cookies=cookiesAllCodeForOneDate,
+                    callback=self.ifSkipDate,
+                    cb_kwargs={
+                        'cookies': cookiesAllCodeForOneDate,
+                        "code": code,
+                        "date": date,
+                        "requestType": 'PatentIfSkipDate'
+                    },
+                    meta={
+                        'url': url_first,
+                        # 'proxy': proxyString,
+                        "requestType": 'PatentIfSkipDate'
+                    },
+                    dont_filter=True
+                )
+
             cookies = CookieUtil.getPatentCookiesProxy(date, code)
 
-            url_first = 'https://kns.cnki.net/kns/brief/brief.aspx?curpage=%d&RecordsPerPage=50&QueryID=10&ID=&turnpage=1&tpagemode=L&dbPrefix=SCPD&Fields=&DisplayMode=listmode&PageName=ASP.brief_result_aspx&isinEn=0&' % 1
             # print("发起请求获取第一页信息", date, code)
             yield scrapy.Request(
                 url=url_first,
@@ -82,8 +105,41 @@ class PatentSpider(RedisSpider):
                 },
                 dont_filter=True
             )
-            nextDateAndCode = sm.getNextDateAndCode()
+            nextDateAndCode = self.sm.getNextDateAndCode()
         logging.info('所有专利链接已经获取结束！')
+
+    def ifSkipDate(self, response,code, date,cookies, requestType):
+        '''
+        判断某天是否有专利，如果没有的话，就直接跳过该天
+        :param response:
+        :param code:
+        :param date:
+        :param cookies:
+        :param requestType:
+        :return:
+        '''
+        # print('进入parse_first_page成功')
+        if ErrorUtil.isBadResponse(response=response):
+            return
+        # print('进入parse_first_page成功2')
+        # 使用上次请求的cookie，否则无法翻页成功
+        cookies_now = cookies
+        # 获取上次请求的使用的proxy，这次请求用的cookie和proxy都和以前一致
+        # proxyString = response.meta['proxy']
+        pagerTitleCell = response.xpath('//div[@class="pagerTitleCell"]/text()').extract_first()
+        if pagerTitleCell == None:
+            # print(response.text)
+            # 这里的url一定不是空的，如果是空的话前面已经return了不用担心
+            logging.error("专利页面解析出现错误 %s %s %s %s" % (code, date, response.meta['url'], response.text))
+            ErrorUtil.markDayError(code=code, date=date, type=SpiderTypeEnum.PATENT.value)
+            return
+        page = pagerTitleCell.strip()
+        num = int(re.findall(r'\d+', page.replace(',', ''))[0])  # 文献数
+        pagenum = math.ceil(num / 50)  # 算出页数
+        logging.info("%s 共有：%d篇文献" % (date, num))
+        if num < 1:
+            self.sm.stepIntoNextDate(date)
+            return
 
     # 第一页内容解析，获取页数信息
     def parse_first_page(self, response,code, date,cookies, requestType):
@@ -99,7 +155,7 @@ class PatentSpider(RedisSpider):
         if pagerTitleCell == None:
             # print(response.text)
             # 这里的url一定不是空的，如果是空的话前面已经return了不用担心
-            logging.error("论文页面解析出现错误 %s %s %s %s" % (code, date, response.meta['url'], response.text))
+            logging.error("专利页面解析出现错误 %s %s %s %s" % (code, date, response.meta['url'], response.text))
             ErrorUtil.markDayError(code=code, date=date, type=SpiderTypeEnum.PATENT.value)
             return
         page = pagerTitleCell.strip()

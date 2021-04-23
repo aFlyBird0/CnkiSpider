@@ -23,6 +23,8 @@ class StatusManager():
 
     def __init__(self, type: SpiderTypeEnum):
         self.codes = self.getCodeAll()
+        self.codeFirst = self.codes[0]
+        self.codeLen = len(self.codes)
         self.type = type.value
         self.conn = pymysql.connect(host=StatusManager.host, port=StatusManager.port,
                                user=StatusManager.user, passwd=StatusManager.passwd,
@@ -34,6 +36,9 @@ class StatusManager():
         self.yesterday = (today - oneday).strftime('%Y-%m-%d')
         # 默认截止日期是昨天
         self.endDate = None
+
+    def getCodeFirst(self):
+        return self.codeFirst
 
     def getLastDateAndCode(self):
         '''
@@ -137,6 +142,21 @@ class StatusManager():
         cursor.execute(updateSql)
         conn.commit()
         conn.close()
+
+    def stepIntoNextDate(self, lastDate: str):
+        '''
+        直接进入到当天的日期
+        :param lastDate:
+        :return:
+        '''
+        # year = int(lastDate[0:4])
+        # month = int(lastDate[5:7])
+        # day = int(lastDate[8:10])
+        # oneday = datetime.timedelta(days=1)
+        # nextDay = (datetime.date(year, month, day) + oneday).strftime('%Y-%m-%d')
+        # 设置上次的日期为当天的最后一个代码，下次获取代码自动会获取到当天的
+        self.markCurrentDateAndCode(date=lastDate, code=self.codes[self.codeLen-1])
+        logging.warning("%s 无任何专利/论文/成果，已跳过当日" % lastDate)
 
     def setEndDate(self, endDate):
         '''
