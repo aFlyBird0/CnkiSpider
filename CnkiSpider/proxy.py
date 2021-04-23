@@ -61,8 +61,10 @@ class ApeProxyManager:
                     data = res['data']
                     # print(data)
                     cls.proxies = []
-                    for d in data:
-                        cls.proxies.append({'ip': d['ip'], 'port':str(d['port'])})
+                    for proxy in data:
+                        # 再封装一个直接是http:ip:port形式的
+                        ipPort = "http://" + proxy['ip'] + ":" + str(proxy['port'])
+                        cls.proxies.append({'ip': proxy['ip'], 'port':str(proxy['port']), 'string': ipPort})
                     logging.debug('获取到的所有代理:%s', str(cls.proxies))
                     # print(cls.proxies)
                     return True
@@ -79,8 +81,12 @@ class ApeProxyManager:
             return False
 
     @classmethod
-    def getProxyDict(cls):
-        if cls.proxyLeft > 0:
+    def getProxy(cls):
+        '''
+        获取一个代理
+        :return:
+        '''
+        if cls.proxyLeft > 0 and len(cls.proxies) > 0:
             # proxy = cls.proxies[ApeProxyManager.limit-cls.proxyLeft]
             proxy = random.choice(cls.proxies)
             logging.debug("代理复用，获取到的代理：%s:%s" % (proxy['ip'], proxy['port']))
@@ -103,30 +109,6 @@ class ApeProxyManager:
             sys.exit()
 
     @classmethod
-    def getProxyString(cls):
-        if cls.proxyLeft > 0:
-            # proxy = cls.proxies[ApeProxyManager.limit-cls.proxyLeft]
-            proxy = random.choice(cls.proxies)
-            logging.debug("代理复用，获取到的代理：%s:%s" % (proxy['ip'], proxy['port']))
-            cls.proxyLeft -= 1
-            # logging.debug("当前剩余代理数量：%s" % cls.proxyLeft)
-            return ("http://" + proxy['ip'] + ":" + str(proxy['port']))
-        else:
-            for i in range(24):
-                if cls.getProxiesDicts():
-                    cls.proxyLeft = ApeProxyManager.limit * ApeProxyManager.reuseMAX
-                    # proxy = cls.proxies[ApeProxyManager.limit-cls.proxyLeft]
-                    proxy = random.choice(cls.proxies)
-                    cls.proxyLeft -= 1
-                    logging.debug("请求新批次代理，获取到的代理：%s:%s" % (proxy['ip'], proxy['port']))
-                    # logging.debug("当前剩余代理数量：%s" % cls.proxyLeft)
-                    return  ("http://" + proxy['ip'] + ":" + str(proxy['port']))
-                # 代理一般是几秒才能请求一次，所以可能存在请求过快导致报错的情况，这时候暂停一秒再次请求
-                time.sleep(1)
-            logging.error("连续24次获取ip失败，程序退出")
-            sys.exit()
-
-    @classmethod
     def proxyDict2String(cls, proxy):
         '''
         将字典形式的代理转化为http://ip:port形式
@@ -137,7 +119,22 @@ class ApeProxyManager:
             return proxy
         return "http://" + proxy['ip'] + ":" + str(proxy['port'])
 
+    @classmethod
+    def removeBadProxy(cls, proxyString: str):
+        '''
+        根据proxyString移除无效代理（请求错误的）
+        :param proxyString:
+        :return:
+        '''
+        # 先减去可用代理总次数，防止剩下的代理被用太多次
+        # 考虑到高并发，可能一个问题代理同时被使用多次导致失败多次，这里减去复用次数的四分之一
+        cls.proxyLeft -= cls.reuseMAX / 4
+        # logging.info("去重前的代理是 %s" % str([item['string'] for item in cls.proxies]))
+        cls.proxies = [item for item in cls.proxies if not item["string"] == proxyString]
+        logging.debug("代理 %s 已经被去除" % proxyString)
+        # logging.info("现在还剩的代理是 %s" % str([item['string'] for item in cls.proxies]))
+
 if __name__ == '__main__':
     for i in range(1000):
-        proxy = ApeProxyManager.getProxyDict()
+        proxy = ApeProxyManager.getProxy()
         # print(proxy)

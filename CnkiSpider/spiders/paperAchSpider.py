@@ -3,6 +3,7 @@ import math
 import re
 import time
 import uuid
+from scrapy_redis.spiders import RedisSpider
 
 import requests
 import scrapy
@@ -14,7 +15,7 @@ from CnkiSpider.file_util import FileUtil
 import os
 import logging
 
-class PaperAchSpider(scrapy.Spider):
+class PaperAchSpider(RedisSpider):
     '''
     博硕、期刊、科技成果都在这个spider里面
     '''

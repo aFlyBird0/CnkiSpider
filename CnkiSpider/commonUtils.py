@@ -7,6 +7,7 @@ import logging
 import scrapy
 from CnkiSpider.file_util import FileUtil
 from scrapy.utils.project import get_project_settings
+import sys
 
 class StringUtil:
 
@@ -98,12 +99,26 @@ class CookieUtil():
         }
 
         settings = get_project_settings()
-        if settings.get("PROXY_OPEN"):
-            # logging.debug('requests获取cookis, 代理为%s' % str(proxyDict))
-            proxyDict = ApeProxyManager.getProxyDict()
-            session_response = requests.get(search_url, params=params, proxies=cls.configReqestsProxyMeta(proxyDict))
-        else:
-            session_response = requests.get(search_url, params=params)
+
+        # logging.debug('requests获取cookis, 代理为%s' % str(proxyDict))
+        session_response = None
+        for i in range(30):
+            try:
+                if settings.get("PROXY_OPEN"):
+                    proxyDict = ApeProxyManager.getProxy()
+                    session_response = requests.get(search_url, params=params, proxies=cls.configReqestsProxyMeta(proxyDict))
+                else:
+                    session_response = requests.get(search_url, params=params)
+                if session_response.status_code == 200:
+                    break
+                else:
+                    logging.warning("cookie获取失败，第%d次重新获取中" % (i+1))
+                    time.sleep(1)
+            except requests.exceptions.RequestException as e:
+                logging.error('cookie获取发生异常 %s' % str(e))
+        if not session_response:
+            logging.error("cookie获取失败，程序退出")
+            sys.exit()
         cookies = requests.utils.dict_from_cookiejar(session_response.cookies)
         return cookies
 

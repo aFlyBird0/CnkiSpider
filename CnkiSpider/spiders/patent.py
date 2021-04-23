@@ -11,12 +11,13 @@ from CnkiSpider.commonUtils import SpiderTypeEnum, CookieUtil, ErrorUtil
 from CnkiSpider.file_util import FileUtil
 from CnkiSpider.proxy import ApeProxyManager
 from scrapy.http.cookies import CookieJar
+from scrapy_redis.spiders import RedisSpider
 
 import logging
 import datetime
 
 
-class PatentSpider(scrapy.Spider):
+class PatentSpider(RedisSpider):
     name = 'patent'
     allowed_domains = ['www.cnki.net/']
     # start_urls = ['//https://www.cnki.net//']
@@ -163,7 +164,7 @@ class PatentSpider(scrapy.Spider):
                 url=url,
                 # cookies=cookies,
                 callback=self.parse_content,
-                dont_filter=True, # 这里参与去重，专利文件不重复
+                dont_filter=False, # 这里参与去重，专利文件不重复
                 cb_kwargs={
                     'url': url,
                     'code': code,

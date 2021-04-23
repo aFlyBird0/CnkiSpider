@@ -87,7 +87,7 @@ class CnkispiderSpiderProxyMiddleware:
     给所有的request加上代理
     '''
     def process_request(self, request, spider):
-        request.meta["proxy"] = ApeProxyManager.getProxyString()
+        request.meta["proxy"] = ApeProxyManager.getProxy()['string']
         request.headers["Proxy-Authorization"] = ApeProxyManager.proxyAuth
         return None
 
@@ -114,9 +114,11 @@ class RetryAndGetFailedUrl(RetryMiddleware):
             # 在此处进行自己的操作，如删除不可用代理，打日志等
             settings = get_project_settings()
             if settings.get("PROXY_OPEN"):
-                proxyString = ApeProxyManager.getProxyString()
+                oldProxyString = request.meta["proxy"]
+                ApeProxyManager.removeBadProxy(oldProxyString)
+                proxyString = ApeProxyManager.getProxy()['string']
                 request.meta["proxy"] = proxyString
-                logging.warning('切换代理(%s)重试中(%s)' % (request.url, proxyString))
+                logging.warning('切换代理(%s)重试中(%s)' % (proxyString, request.url))
             else:
                 logging.warning('未启用代理，重试中(%s)' % (request.url))
             self.save_url(request, spider)
@@ -131,9 +133,11 @@ class RetryAndGetFailedUrl(RetryMiddleware):
             # logging.warning('错误异常捕捉:%s,开始重试' % exception)
             settings = get_project_settings()
             if settings.get("PROXY_OPEN"):
-                proxyString = ApeProxyManager.getProxyString()
+                oldProxyString = request.meta["proxy"]
+                ApeProxyManager.removeBadProxy(oldProxyString)
+                proxyString = ApeProxyManager.getProxy()['string']
                 request.meta["proxy"] = proxyString
-                logging.warning('切换代理(%s)重试中(%s)' % (request.url, proxyString))
+                logging.warning('切换代理(%s)重试中(%s)' % (proxyString, request.url))
             else:
                 logging.warning('未启用代理，重试中(%s)' % (request.url))
             self.save_url(request, spider)
