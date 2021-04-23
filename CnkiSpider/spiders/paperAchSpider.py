@@ -20,7 +20,7 @@ class PaperAchSpider(RedisSpider):
     博硕、期刊、科技成果都在这个spider里面
     '''
     name = 'paperAch'
-    allowed_domains = ['kns.cnki.net']
+    allowed_domains = ['www.cnki.net', 'kns.cnki.net']
     custom_settings = {
         # 设置管道下载
         # 设置log日志
@@ -143,7 +143,7 @@ class PaperAchSpider(RedisSpider):
                     yield scrapy.Request(
                         url=url,
                         callback=self.parse_journal_content,
-                        dont_filter=True,
+                        # dont_filter=True,
                         cb_kwargs={
                             'url': url,
                             'code': code,
@@ -163,7 +163,7 @@ class PaperAchSpider(RedisSpider):
                     yield scrapy.Request(
                         url=url,
                         callback=self.parse_boshuo_content,
-                        dont_filter=True,
+                        # dont_filter=True,
                         cb_kwargs={
                             'url': url,
                             'code': code,
@@ -183,7 +183,7 @@ class PaperAchSpider(RedisSpider):
                     yield scrapy.Request(
                         url=url,
                         callback=self.parse_ach_content,
-                        dont_filter=True,
+                        # dont_filter=True,
                         cb_kwargs={
                             'url': url,
                             'code': code,

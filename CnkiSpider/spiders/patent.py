@@ -19,7 +19,7 @@ import datetime
 
 class PatentSpider(RedisSpider):
     name = 'patent'
-    allowed_domains = ['www.cnki.net/']
+    allowed_domains = ['www.cnki.net', 'kns.cnki.net']
     # start_urls = ['//https://www.cnki.net//']
     custom_settings = {
         # 设置管道下载
@@ -99,7 +99,7 @@ class PatentSpider(RedisSpider):
         if pagerTitleCell == None:
             # print(response.text)
             # 这里的url一定不是空的，如果是空的话前面已经return了不用担心
-            logging.error("论文页面解析出现错误", code, date, response.meta['url'], response.text)
+            logging.error("论文页面解析出现错误 %s %s %s %s" % (code, date, response.meta['url'], response.text))
             ErrorUtil.markDayError(code=code, date=date, type=SpiderTypeEnum.PATENT.value)
             return
         page = pagerTitleCell.strip()
