@@ -135,13 +135,10 @@ class StatusManager():
         记录当前正在爬的日期和code至数据库中
         :return:
         '''
-        conn = pymysql.connect(host=StatusManager.host, user=StatusManager.user, passwd="123456", database="ZhiWangSpider")
-        cursor = conn.cursor()
         #更新正在爬取的日期和学科分类的sql
         updateSql = "UPDATE `%s` SET curDate = '%s', curCode = '%s' WHERE type = '%s'" % (StatusManager.table, date, code, self.type)
-        cursor.execute(updateSql)
-        conn.commit()
-        conn.close()
+        self.cursor.execute(updateSql)
+        self.conn.commit()
 
     def stepIntoNextDate(self, lastDate: str):
         '''

@@ -131,15 +131,16 @@ class RetryAndGetFailedUrl(RetryMiddleware):
             and not request.meta.get('dont_retry', False)
         ):
             # logging.warning('错误异常捕捉:%s,开始重试' % exception)
+            logging.warning("捕获到异常 %s" % exception)
             settings = get_project_settings()
-            if settings.get("PROXY_OPEN"):
+            if settings.get("PROXY_OPEN") and isinstance(exception, TunnelError):
                 oldProxyString = request.meta["proxy"]
                 ApeProxyManager.removeBadProxy(oldProxyString)
                 proxyString = ApeProxyManager.getProxy()['string']
                 request.meta["proxy"] = proxyString
-                logging.warning('切换代理(%s)重试中(%s)' % (proxyString, request.url))
+                logging.warning('代理异常，切换代理(%s)重试中(%s)' % (proxyString, request.url))
             else:
-                logging.warning('未启用代理，重试中(%s)' % (request.url))
+                logging.warning('未启用代理或网络异常与代理无关，重试中(%s)' % (request.url))
             self.save_url(request, spider)
             return self._retry(request, exception, spider)
 
