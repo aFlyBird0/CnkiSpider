@@ -74,6 +74,165 @@ class PaperAchSpider(RedisSpider):
             nextDateAndCode = sm.getNextDateAndCode()
         logging.info('所有论文成果链接已经获取结束！')
 
+        #################### 重新获取失败的链接，直到所有链接都获取成功 开始 ###################
+        logging.info('开始重新获取出错链接并重爬链接')
+        errCodeDate = ErrorUtil.getOneErrorCode(type=SpiderTypeEnum.PAPER_AND_ACH)
+        while errCodeDate:
+            id = errCodeDate[0]
+            type = errCodeDate[1]
+            code = errCodeDate[2]
+            date = errCodeDate[3]
+            # 从数据库中删除这条已经获取的日期代码对，不用担心出错，如果出错会被错误处理模块捕获
+            # 但其实这里还有个小bug，就是可能有的请求还在请求中，但是数据库这时候空了，导致最后几个出错请求没被重新爬
+            # 这样的问题就只涉及几个专利，只要再运行一次程序就行
+            ErrorUtil.deleteErrorCode(id=id)
+            cookies = CookieUtil.getPaperAchCookiesProxy(date, code)
+            url_first = self.base_url + '1'
+            yield scrapy.Request(
+                url=url_first,
+                cookies=cookies,
+                callback=self.parse_first_page,
+                cb_kwargs={
+                    'cookies': cookies,
+                    "code": code,
+                    "date": date,
+                    "requestType": "PaperAchGetFirstPage"
+                },
+                meta={
+                    'url': url_first,
+                    "requestType": "PaperAchGetFirstPage"
+                },
+                dont_filter=True
+            )
+
+            errCodeDate = ErrorUtil.getOneErrorCode(type=SpiderTypeEnum.PAPER_AND_ACH)
+        logging.info('开始重新获取出错链接并重爬链接')
+        ###################################### 重新获取失败的链接，直到所有链接都获取成功 结束################
+
+        ######################## 重新请求所有失败链接 开始 ############################
+        logging.info("开始请求期刊失败链接")
+        errorLink = ErrorUtil.getOneErrorLink(type=SpiderTypeEnum.JOURNAL)
+        while errorLink:
+            id = errorLink[0]
+            type = errorLink[1]
+            code = errorLink[2]
+            link = errorLink[3]
+            date = errorLink[4]
+
+            ErrorUtil.deleteErrorLink(id)
+
+            url = link
+            yield scrapy.Request(
+                url=url,
+                callback=self.parse_journal_content,
+                dont_filter=True,   # 这里不去重，因为之前的链接应该请求过，如果去重再次请求会直接过滤
+                cb_kwargs={
+                    'url': url,
+                    'code': code,
+                    'date': date,
+                    "requestType": "JournalGetContent"
+                },
+                meta={
+                    'url': url,
+                    "requestType": "JournalGetContent"
+                }
+            )
+            errorLink = ErrorUtil.getOneErrorLink(type=SpiderTypeEnum.JOURNAL)
+        logging.info("所有期刊失败链接已重新请求完毕")
+
+        logging.info("开始请求期刊失败链接")
+        errorLink = ErrorUtil.getOneErrorLink(type=SpiderTypeEnum.JOURNAL)
+        while errorLink:
+            id = errorLink[0]
+            type = errorLink[1]
+            code = errorLink[2]
+            link = errorLink[3]
+            date = errorLink[4]
+
+            ErrorUtil.deleteErrorLink(id)
+
+            url = link
+            yield scrapy.Request(
+                url=url,
+                callback=self.parse_journal_content,
+                dont_filter=True,  # 这里不去重，因为之前的链接应该请求过，如果去重再次请求会直接过滤
+                cb_kwargs={
+                    'url': url,
+                    'code': code,
+                    'date': date,
+                    "requestType": "JournalGetContent"
+                },
+                meta={
+                    'url': url,
+                    "requestType": "JournalGetContent"
+                }
+            )
+            errorLink = ErrorUtil.getOneErrorLink(type=SpiderTypeEnum.JOURNAL)
+        logging.info("所有期刊失败链接已重新请求完毕")
+
+        logging.info("开始请求博硕失败链接")
+        errorLink = ErrorUtil.getOneErrorLink(type=SpiderTypeEnum.BOSHUO)
+        while errorLink:
+            id = errorLink[0]
+            type = errorLink[1]
+            code = errorLink[2]
+            link = errorLink[3]
+            date = errorLink[4]
+
+            ErrorUtil.deleteErrorLink(id)
+
+            url = link
+            yield scrapy.Request(
+                url=url,
+                callback=self.parse_boshuo_content,
+                dont_filter=True,  # 这里不去重，因为之前的链接应该请求过，如果去重再次请求会直接过滤
+                cb_kwargs={
+                    'url': url,
+                    'code': code,
+                    'date': date,
+                    "requestType": "BoshuoGetContent"
+                },
+                meta={
+                    'url': url,
+                    "requestType": "BoshuoGetContent"
+                }
+            )
+            errorLink = ErrorUtil.getOneErrorLink(type=SpiderTypeEnum.BOSHUO)
+        logging.info("所有博硕失败链接已重新请求完毕")
+
+        logging.info("开始请求成果失败链接")
+        errorLink = ErrorUtil.getOneErrorLink(type=SpiderTypeEnum.ACHIEVEMENT)
+        while errorLink:
+            id = errorLink[0]
+            type = errorLink[1]
+            code = errorLink[2]
+            link = errorLink[3]
+            date = errorLink[4]
+
+            ErrorUtil.deleteErrorLink(id)
+
+            url = link
+            yield scrapy.Request(
+                url=url,
+                callback=self.parse_ach_content,
+                dont_filter=True,  # 这里不去重，因为之前的链接应该请求过，如果去重再次请求会直接过滤
+                cb_kwargs={
+                    'url': url,
+                    'code': code,
+                    'date': date,
+                    "requestType": "AchGetContent"
+                },
+                meta={
+                    'url': url,
+                    "requestType": "AchGetContent"
+                }
+            )
+            errorLink = ErrorUtil.getOneErrorLink(type=SpiderTypeEnum.ACHIEVEMENT)
+        logging.info("所有成果失败链接已重新请求完毕")
+        ######################## 重新请求所有失败链接 结束 ############################
+
+        logging.info("当前（期刊、博硕、成果）爬取任务、错误重爬均已完成")
+
     # 第一页内容解析，获取页数信息
     def parse_first_page(self,response,cookies,code,date, requestType):
         if ErrorUtil.isBadResponse(response=response):
@@ -123,7 +282,7 @@ class PaperAchSpider(RedisSpider):
         if len(rows) < 1:
             # 某一页没有获取到列表内容
             logging.error('页面无链接，以下是获取到的response:%s' % response.text)
-            ErrorUtil.markPageError(code=code,date=date,pagenum=pagenum, type=SpiderTypeEnum.PAPER_AND_ACH.value)
+            ErrorUtil.markCodeError(code=code,date=date, type=SpiderTypeEnum.PAPER_AND_ACH)
             return
         else:
             rows.pop(0) # 去掉标题行
