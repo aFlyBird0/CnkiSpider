@@ -202,10 +202,26 @@ class CookieUtil():
         cookies = requests.utils.dict_from_cookiejar(session_response.cookies)
         return cookies
 
+import pymysql
+
+
 class ErrorUtil():
     '''
     错误判断工具类
     '''
+    settings = get_project_settings()
+    host = settings.get("MYSQL_HOST")
+    port = int(settings.get("MYSQL_PORT"))
+    user = settings.get("MYSQL_USER")
+    passwd = settings.get("MYSQL_PASSWD")
+    database = settings.get("MYSQL_DATABASE")
+    # table = settings.get("STATUS_TABLE")
+    errorCodeTable = settings.get("ERROR_CODE_TABLE")
+    errorLinkTable = settings.get("ERROR_LINK_TABLE")
+
+    conn = pymysql.connect(host=host, port=port, user=user, passwd=passwd, database=database)
+    cursor = conn.cursor()
+
 
     @classmethod
     def isBadResponse(cls, response):
@@ -219,43 +235,90 @@ class ErrorUtil():
         else:
             return False
 
-    @classmethod
-    def markLinkError(cls, url, type):
-        with open(FileUtil.errorLinkDir + type + 'Error.txt', 'a', encoding='utf-8') as file:
-            file.write(url + '\n')
-
     # @classmethod
-    # def markSecondError(cls, code, date, pagenum):
-    #     if pagenum == 0:
-    #         with open('error/erday.txt', 'a', encoding='utf-8') as f:
-    #             f.write(code + '&' + date + '\n')
-    #     else:
-    #         with open('error/erpage.txt', 'a', encoding='utf-8') as f:
-    #             f.write(code + '&' + date + '&' + str(pagenum) + '\n')
-
-    # @classmethod
-    # def markFirstError(cls, code, date, pagenum):
-    #     if pagenum == 0:
-    #         with open('error/errorday_' + date + '.txt', 'a', encoding='utf-8') as f:
-    #             f.write(code + '&' + date + '\n')
-    #     else:
-    #         with open('error/errorpage_' + date + 'txt', 'a', encoding='utf-8') as f:
-    #             f.write(code + '&' + date + '&' + str(pagenum) + '\n')
-
-    # @classmethod
-    # def easyErrorRecoder(cls, url):
-    #     with open('error/EasyErrorRecorder.txt', 'a', encoding='utf-8') as file:
+    # def markLinkError(cls, url, type, code):
+    #     with open(FileUtil.errorLinkDir + type + 'Error.txt', 'a', encoding='utf-8') as file:
     #         file.write(url + '\n')
 
     @classmethod
-    def markDayError(cls, type, code, date):
-        with open(FileUtil.errorDayDir + type + '.txt', 'a', encoding='utf-8') as f:
-            f.write(code + '&' + date + '\n')
+    def markLinkError(cls, url, type: SpiderTypeEnum, code, date):
+        '''
+        记录出错的链接
+        :param url:
+        :param type:
+        :param code:
+        :return:
+        '''
+        sql = "INSERT INTO `%s` (`type`, `code`, `link`, `date`)VALUES('%s', '%s', '%s', '%s')" % (cls.errorLinkTable, type.value, code, url, date)
+        cls.cursor.execute(sql)
+        cls.conn.commit()
+
+    # @classmethod
+    # def markDayError(cls, type, code, date):
+    #     with open(FileUtil.errorDayDir + type + '.txt', 'a', encoding='utf-8') as f:
+    #         f.write(code + '&' + date + '\n')
 
     @classmethod
-    def markPageError(cls, type, code, date, pagenum):
-        with open(FileUtil.errorPageDir + type + '.txt', 'a', encoding='utf-8') as f:
-            f.write(code + '&' + date + '&' + str(pagenum) + '\n')
+    def markCodeError(cls, type, code, date):
+        '''
+        记录某天某学科链接获取失败情况
+        :param type:
+        :param code:
+        :param date:
+        :return:
+        '''
+        sql = "INSERT INTO `%s` (`type`, `code`, `date`)VALUES('%s', '%s', '%s')" % (
+            cls.errorCodeTable, type.value, code, date)
+        cls.cursor.execute(sql)
+        cls.conn.commit()
+
+    @classmethod
+    def getOneErrorCode(cls, type:SpiderTypeEnum = None):
+        if type:
+            sql = "select `id`, `type`, `code`, `date` from `%s` where `type` = '%s' limit 1" % (cls.errorCodeTable, type.value)
+        else:
+            sql = "select `id`, `type`, `code`, `date` from `%s` limit 1" % (cls.errorCodeTable)
+        cls.cursor.execute(sql)
+        result = cls.cursor.fetchone()
+        if not result:
+            return None
+        else:
+            return result
+
+    @classmethod
+    def getOneErrorLink(cls, type: SpiderTypeEnum = None):
+        if type:
+            sql = "select `id`, `type`, `code`, `link`, `date` from `%s` where `type` = '%s' limit 1" % (
+            cls.errorLinkTable, type.value)
+        else:
+            sql = "select `id`, `type`, `code`, `link`, `date` from `%s` limit 1" % (cls.errorLinkTable)
+        cls.cursor.execute(sql)
+        result = cls.cursor.fetchone()
+        if not result:
+            return None
+        else:
+            return result
+
+    @classmethod
+    def deleteErrorCode(cls, id:int):
+        sql = "delete from `%s` where `id` = %d" % (cls.errorCodeTable, id)
+        cls.cursor.execute(sql)
+        cls.conn.commit()
+
+    @classmethod
+    def deleteErrorLink(cls, id: int):
+        sql = "delete from `%s` where `id` = %d" % (cls.errorLinkTable, id)
+        cls.cursor.execute(sql)
+        cls.conn.commit()
+
+    @classmethod
+    def closeConn(cls):
+        '''
+        关闭数据库连接
+        :return:
+        '''
+        cls.conn.close()
+
 
 if __name__ == '__main__':
     CookieUtil.getPatentCookiesScrapy(date='2020-01-01', code='A')

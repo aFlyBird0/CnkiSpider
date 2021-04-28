@@ -46,28 +46,28 @@ class ProcessAllExceptionMiddleware(object):
             # print("截取到了错误请求")
             if spider.name == SpiderTypeEnum.PATENT.value:
                 # print(key)
-                if key['requestType'] == 'PatentGetFirstPage':
+                if key['requestType'] in  ['PatentGetFirstPage', 'PatentGetLinks']:
                     # print('请求状态:%s' % response.status)
                     # print('请求链接:%s' % response.meta['url'])
                     # print('响应内容:%s' % response.text)
-                    ErrorUtil.markDayError(type=SpiderTypeEnum.PATENT.value, code=key['code'], date=key['date'])
-                elif key['requestType'] == 'PatentGetLinks':
-                    ErrorUtil.markPageError(type=SpiderTypeEnum.PATENT.value, code=key['code'], date=key['date'],
-                                       pagenum=key['pagenum'])
+                    ErrorUtil.markCodeError(type=SpiderTypeEnum.PATENT, code=key['code'], date=key['date'])
+                # elif key['requestType'] == 'PatentGetLinks':
+                #     ErrorUtil.markPageError(type=SpiderTypeEnum.PATENT, code=key['code'], date=key['date'],
+                #                        pagenum=key['pagenum'])
                 elif key['requestType'] == "patentGetContent":
-                    ErrorUtil.markLinkError(type=SpiderTypeEnum.PATENT.value, url=key['url'])
+                    ErrorUtil.markLinkError(type=SpiderTypeEnum.PATENT, url=key['url'], code=key['code'], date=key['date'])
             elif spider.name == SpiderTypeEnum.PAPER_AND_ACH.value:
-                if key['requestType'] == "PaperAchGetFirstPage":
-                    ErrorUtil.markDayError(type=SpiderTypeEnum.PAPER_AND_ACH.value, code=key['code'], date=key['date'])
-                elif key['requestType'] == 'PaperAchGetLinks':
-                    ErrorUtil.markPageError(type=SpiderTypeEnum.PAPER_AND_ACH.value, code=key['code'], date=key['date'],
-                                            pagenum=key['pagenum'])
+                if key['requestType'] in ["PaperAchGetFirstPage", 'PaperAchGetLinks']:
+                    ErrorUtil.markCodeError(type=SpiderTypeEnum.PAPER_AND_ACH, code=key['code'], date=key['date'])
+                # elif key['requestType'] == 'PaperAchGetLinks':
+                #     ErrorUtil.markPageError(type=SpiderTypeEnum.PAPER_AND_ACH, code=key['code'], date=key['date'],
+                #                             pagenum=key['pagenum'])
                 elif key['requestType'] == "JournalGetContent":
-                    ErrorUtil.markLinkError(type=SpiderTypeEnum.JOURNAL.value, url=key['url'])
+                    ErrorUtil.markLinkError(type=SpiderTypeEnum.JOURNAL, url=key['url'], code=key['code'], date=key['date'])
                 elif key['requestType'] == "BoshuoGetContent":
-                    ErrorUtil.markLinkError(type=SpiderTypeEnum.BOSHUO.value, url=key['url'])
+                    ErrorUtil.markLinkError(type=SpiderTypeEnum.BOSHUO, url=key['url'], code=key['code'], date=key['date'])
                 elif key['requestType'] == "AchGetContent":
-                    ErrorUtil.markLinkError(type=SpiderTypeEnum.ACHIEVEMENT.value, url=key['url'])
+                    ErrorUtil.markLinkError(type=SpiderTypeEnum.ACHIEVEMENT, url=key['url'], code=key['code'], date=key['date'])
             # 返回一个出错的response，前端判断url为空就说明之前的请求有问题
             return HtmlResponse(url='')
         return response
@@ -156,23 +156,23 @@ class RetryAndGetFailedUrl(RetryMiddleware):
             logging.warning("连续请求%s次，放弃请求" % str(retries))
             if spider.name == SpiderTypeEnum.PATENT.value:
                 if key['requestType'] == 'PatentGetFirstPage':
-                    ErrorUtil.markDayError(type=SpiderTypeEnum.PATENT.value, code=key['code'], date=key['date'])
-                elif key['requestType'] == 'PatentGetLinks':
-                    ErrorUtil.markPageError(type=SpiderTypeEnum.PATENT.value, code=key['code'], date=key['date'],
-                                            pagenum=key['pagenum'])
+                    ErrorUtil.markCodeError(type=SpiderTypeEnum.PATENT, code=key['code'], date=key['date'])
+                # elif key['requestType'] == 'PatentGetLinks':
+                #     ErrorUtil.markPageError(type=SpiderTypeEnum.PATENT, code=key['code'], date=key['date'],
+                #                             pagenum=key['pagenum'])
                 elif key['requestType'] == "patentGetContent":
-                    ErrorUtil.markLinkError(type=SpiderTypeEnum.PATENT.value, url=key['url'])
+                    ErrorUtil.markLinkError(type=SpiderTypeEnum.PATENT, url=key['url'], date=key['date'], code=key['code'])
             elif spider.name == SpiderTypeEnum.PAPER_AND_ACH.value:
                 if key['requestType'] == "PaperAchGetFirstPage":
-                    ErrorUtil.markDayError(type=SpiderTypeEnum.PAPER_AND_ACH.value, code=key['code'], date=key['date'])
-                elif key['requestType'] == 'PaperAchGetLinks':
-                    ErrorUtil.markPageError(type=SpiderTypeEnum.PAPER_AND_ACH.value, code=key['code'], date=key['date'],
-                                            pagenum=key['pagenum'])
+                    ErrorUtil.markCodeError(type=SpiderTypeEnum.PAPER_AND_ACH, code=key['code'], date=key['date'])
+                # elif key['requestType'] == 'PaperAchGetLinks':
+                #     ErrorUtil.markPageError(type=SpiderTypeEnum.PAPER_AND_ACH.value, code=key['code'], date=key['date'],
+                #                             pagenum=key['pagenum'])
                 elif key['requestType'] == "JournalGetContent":
-                    ErrorUtil.markLinkError(type=SpiderTypeEnum.JOURNAL.value, url=key['url'])
+                    ErrorUtil.markLinkError(type=SpiderTypeEnum.JOURNAL, url=key['url'], date=key['date'], code=key['code'])
                 elif key['requestType'] == "BoshuoGetContent":
-                    ErrorUtil.markLinkError(type=SpiderTypeEnum.BOSHUO.value, url=key['url'])
+                    ErrorUtil.markLinkError(type=SpiderTypeEnum.BOSHUO, url=key['url'], date=key['date'], code=key['code'])
                 elif key['requestType'] == "AchGetContent":
-                    ErrorUtil.markLinkError(type=SpiderTypeEnum.ACHIEVEMENT.value, url=key['url'])
+                    ErrorUtil.markLinkError(type=SpiderTypeEnum.ACHIEVEMENT, url=key['url'], date=key['date'], code=key['code'])
 
 

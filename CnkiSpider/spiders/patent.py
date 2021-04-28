@@ -108,6 +108,101 @@ class PatentSpider(RedisSpider):
             nextDateAndCode = self.sm.getNextDateAndCode()
         logging.info('所有专利链接已经获取结束！')
 
+        # 获取失败的日期和学科代码，重新获取链接并请求、解析内容
+        self.handleErrorCodeDate()
+        # 获取请求失败的链接，重新请求并解析内容
+        print("456")
+        self.hanldeErrorLink()
+        print("789")
+
+
+
+
+
+    def handleErrorCodeDate(self):
+        '''
+        重新获取失败的链接，直到所有链接都获取成功 开始
+        :return:
+        '''
+        print("123")
+        logging.info('开始重新获取出错链接并重爬链接')
+        errCodeDate = ErrorUtil.getOneErrorCode(type=SpiderTypeEnum.PATENT)
+        while errCodeDate:
+            id = errCodeDate[0]
+            type = errCodeDate[1]
+            code = errCodeDate[2]
+            date = errCodeDate[3]
+            # 从数据库中删除这条已经获取的日期代码对，不用担心出错，如果出错会被错误处理模块捕获
+            # 但其实这里还有个小bug，就是可能有的请求还在请求中，但是数据库这时候空了，导致最后几个出错请求没被重新爬
+            # 这样的问题就只涉及几个专利，只要再运行一次程序就行
+            ErrorUtil.deleteErrorCode(id=id)
+            url_first = 'https://kns.cnki.net/kns/brief/brief.aspx?curpage=%d&RecordsPerPage=50&QueryID=10&ID=&turnpage=1&tpagemode=L&dbPrefix=SCPD&Fields=&DisplayMode=listmode&PageName=ASP.brief_result_aspx&isinEn=0&' % 1
+
+            cookies = CookieUtil.getPatentCookiesProxy(date, code)
+
+            # print("发起请求获取第一页信息", date, code)
+            yield scrapy.Request(
+                url=url_first,
+                cookies=cookies,
+                callback=self.parse_first_page,
+                cb_kwargs={
+                    'cookies': cookies,
+                    "code": code,
+                    "date": date,
+                    "requestType": 'PatentGetFirstPage'
+                },
+                meta={
+                    'url': url_first,
+                    # 'proxy': proxyString,
+                    "requestType": 'PatentGetFirstPage'
+                },
+                dont_filter=True
+            )
+            errCodeDate = ErrorUtil.getOneErrorCode(type=SpiderTypeEnum.PATENT)
+        logging.info('开始重新获取出错链接并重爬链接')
+        ###################################### 重新获取失败的链接，直到所以链接都获取成功 结束################
+
+    def hanldeErrorLink(self):
+        '''
+        重新请求所有失败链接
+        :return:
+        '''
+        logging.info("开始请求失败链接")
+        print("我运行了")
+        errorLink = ErrorUtil.getOneErrorLink(type=SpiderTypeEnum.PATENT)
+        while errorLink:
+            id = errorLink[0]
+            type = errorLink[1]
+            code = errorLink[2]
+            link = errorLink[3]
+            date = errorLink[4]
+
+            ErrorUtil.deleteErrorLink(id)
+
+            url = link
+            yield scrapy.Request(
+                url=url,
+                # cookies=cookies,
+                callback=self.parse_content,
+                dont_filter=True,  # 这里不去重，因为之前的链接应该请求过，如果去重再次请求会直接过滤
+                cb_kwargs={
+                    'url': url,
+                    'code': code,
+                    'date': date,
+                    "requestType": "patentGetContent"
+                },
+                meta={
+                    'url': url,
+                    # 'proxy': proxyString,
+                    "requestType": "patentGetContent"
+                }
+            )
+            errorLink = ErrorUtil.getOneErrorLink(type=SpiderTypeEnum.PATENT)
+        logging.info("所有失败链接已重新请求完毕")
+
+
+
+
     def ifSkipDate(self, response,code, date,cookies, requestType):
         '''
         判断某天是否有专利，如果没有的话，就直接跳过该天
@@ -131,7 +226,7 @@ class PatentSpider(RedisSpider):
             # print(response.text)
             # 这里的url一定不是空的，如果是空的话前面已经return了不用担心
             logging.error("专利页面解析出现错误 %s %s %s %s" % (code, date, response.meta['url'], response.text))
-            ErrorUtil.markDayError(code=code, date=date, type=SpiderTypeEnum.PATENT.value)
+            ErrorUtil.markCodeError(code=code, date=date, type=SpiderTypeEnum.PATENT)
             return
         page = pagerTitleCell.strip()
         num = int(re.findall(r'\d+', page.replace(',', ''))[0])  # 文献数
@@ -156,7 +251,7 @@ class PatentSpider(RedisSpider):
             # print(response.text)
             # 这里的url一定不是空的，如果是空的话前面已经return了不用担心
             logging.error("专利页面解析出现错误 %s %s %s %s" % (code, date, response.meta['url'], response.text))
-            ErrorUtil.markDayError(code=code, date=date, type=SpiderTypeEnum.PATENT.value)
+            ErrorUtil.markCodeError(code=code, date=date, type=SpiderTypeEnum.PATENT.value)
             return
         page = pagerTitleCell.strip()
         num = int(re.findall(r'\d+', page.replace(',', ''))[0])  # 文献数

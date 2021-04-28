@@ -82,7 +82,7 @@ class PaperAchSpider(RedisSpider):
         pagerTitleCell = response.xpath('//div[@class="pagerTitleCell"]/text()').extract_first()
         if pagerTitleCell == None:
             logging.error('第一页解析出错，以下是获取到的response:%s' % response.text)
-            ErrorUtil.markDayError(code=code, date=date, type=SpiderTypeEnum.PAPER_AND_ACH.value)
+            ErrorUtil.markCodeError(code=code, date=date, type=SpiderTypeEnum.PAPER_AND_ACH)
             return
         page = pagerTitleCell.strip()
         num = int(re.findall(r'\d+', page.replace(',', ''))[0]) # 文献数

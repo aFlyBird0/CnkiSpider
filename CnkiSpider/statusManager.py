@@ -11,24 +11,26 @@ from scrapy.utils.project import get_project_settings
 
 class StatusManager():
 
-    srcCodeFile = 'dataSrc/code.txt'
-    settings = get_project_settings()
-    host = settings.get("MYSQL_HOST")
-    port = int(settings.get("MYSQL_PORT"))
-    user = settings.get("MYSQL_USER")
-    passwd = settings.get("MYSQL_PASSWD")
-    database = settings.get("MYSQL_DATABASE")
-    table = settings.get("MYSQL_TABLE")
-    logging.debug(host, port, user, passwd, database, table)
+
 
     def __init__(self, type: SpiderTypeEnum):
+
+        self.srcCodeFile = 'dataSrc/codeTest.txt'
+        settings = get_project_settings()
+        self.host = settings.get("MYSQL_HOST")
+        self.port = int(settings.get("MYSQL_PORT"))
+        self.user = settings.get("MYSQL_USER")
+        self.passwd = settings.get("MYSQL_PASSWD")
+        self.database = settings.get("MYSQL_DATABASE")
+        self.table = settings.get("STATUS_TABLE")
+        # logging.debug(host, port, user, passwd, database, table)
+
         self.codes = self.getCodeAll()
         self.codeFirst = self.codes[0]
         self.codeLen = len(self.codes)
         self.type = type.value
-        self.conn = pymysql.connect(host=StatusManager.host, port=StatusManager.port,
-                               user=StatusManager.user, passwd=StatusManager.passwd,
-                               database=StatusManager.database)
+        self.conn = pymysql.connect(host=self.host, port=self.port, user=self.user,
+                                    passwd=self.passwd, database=self.database)
         self.cursor = self.conn.cursor()
         today = datetime.date.today()
         oneday = datetime.timedelta(days=1)
@@ -45,7 +47,7 @@ class StatusManager():
         从数据库中读取上次爬的日期和学科分类，这次重新爬
         :return:
         '''
-        self.cursor.execute("select `curCode`, `curDate`, `endDate` from `%s` where `type` = '%s'" % (StatusManager.table, self.type))
+        self.cursor.execute("select `curCode`, `curDate`, `endDate` from `%s` where `type` = '%s'" % (self.table, self.type))
         result = self.cursor.fetchone()
         # 数据库没数据就返回空，报错给调用者，提示用户向mysql中添加数据
         # 判断type为专利的数据条是否存在
@@ -72,7 +74,7 @@ class StatusManager():
         # 判断学科代码是否存在，不存在就默认从code表第一个开始
         if result[0] == "" or result[0] is None:
             code = self.codes[0]
-            self.cursor.execute("UPDATE `%s` SET curCode = '%s' WHERE type = '%s'" % (StatusManager.table, code, self.type))
+            self.cursor.execute("UPDATE `%s` SET curCode = '%s' WHERE type = '%s'" % (self.table, code, self.type))
             self.conn.commit()
             # conn.close()
             print('未设置初始code信息，已自动设置为', code)
@@ -136,7 +138,7 @@ class StatusManager():
         :return:
         '''
         #更新正在爬取的日期和学科分类的sql
-        updateSql = "UPDATE `%s` SET curDate = '%s', curCode = '%s' WHERE type = '%s'" % (StatusManager.table, date, code, self.type)
+        updateSql = "UPDATE `%s` SET curDate = '%s', curCode = '%s' WHERE type = '%s'" % (self.table, date, code, self.type)
         self.cursor.execute(updateSql)
         self.conn.commit()
 
@@ -160,7 +162,7 @@ class StatusManager():
         设置默认截止日期为昨天
         :return:
         '''
-        self.cursor.execute("UPDATE `%s` SET endDate = '%s' WHERE type = '%s'" % (StatusManager.table, endDate, self.type))
+        self.cursor.execute("UPDATE `%s` SET endDate = '%s' WHERE type = '%s'" % (self.table, endDate, self.type))
         self.conn.commit()
 
     def setStatusRunning(self):
@@ -172,7 +174,7 @@ class StatusManager():
         timeStr = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         status = 'last running:' + timeStr
         updateSql = "UPDATE `%s` SET status = '%s' WHERE type = '%s'" % (
-        StatusManager.table, status, self.type)
+        self.table, status, self.type)
         self.cursor.execute(updateSql)
         self.conn.commit()
         # conn.close()
@@ -186,7 +188,7 @@ class StatusManager():
         timeStr = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         status = 'finished:' + timeStr
         updateSql = "UPDATE `%s` SET status = '%s' WHERE type = '%s'" % (
-        StatusManager.table, status, self.type)
+        self.table, status, self.type)
         self.cursor.execute(updateSql)
         self.conn.commit()
         # conn.close()
@@ -196,7 +198,7 @@ class StatusManager():
         从文件中获取所有code信息
         :return:
         '''
-        with open(StatusManager.srcCodeFile, 'r') as f:
+        with open(self.srcCodeFile, 'r') as f:
             all = f.read()
             return all.split()
 
