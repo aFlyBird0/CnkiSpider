@@ -25,6 +25,7 @@ class PatentSpider(RedisSpider):
         # 设置管道下载
         # 设置log日志
         'LOG_LEVEL': 'INFO',
+        # 'LOG_LEVEL': 'DEBUG',
         'LOG_FILE': FileUtil.logDir + 'patent.log'
     }
 
@@ -149,7 +150,7 @@ class PatentSpider(RedisSpider):
                 dont_filter=True
             )
             errCodeDate = ErrorUtil.getOneErrorCode(type=SpiderTypeEnum.PATENT)
-        logging.info('开始重新获取出错链接并重爬链接')
+        logging.info('重新获取出错链接并重爬链接结束')
         ###################################### 重新获取失败的链接，直到所有链接都获取成功 结束################
 
 
