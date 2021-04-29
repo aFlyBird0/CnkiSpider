@@ -287,7 +287,7 @@ class ErrorUtil():
         :param date:
         :return:
         '''
-        sql = "INSERT INTO `%s` (`type`, `code`, `date`)VALUES('%s', '%s', '%s')" % (
+        sql = "INSERT IGNORE INTO `%s` (`type`, `code`, `date`)VALUES('%s', '%s', '%s')" % (
             cls.errorCodeTable, type.value, code, date)
         cls.cursor.execute(sql)
         cls.conn.commit()

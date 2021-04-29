@@ -15,8 +15,19 @@ class StatusManager():
 
     def __init__(self, type: SpiderTypeEnum):
 
-        self.srcCodeFile = 'dataSrc/codeTest.txt'
+        srcCodeFileNormal = 'dataSrc/code.txt'
+        srcCodeFileTest = 'dataSrc/codeTest.txt'
+
         settings = get_project_settings()
+        codeFileTestMode = settings.get("CODE_FILE_TEST_MODE", default=False)
+        if codeFileTestMode:
+            self.srcCodeFile = srcCodeFileTest
+            print("启用了学科分类测试模式，将使用测试学科分类源: ./dataSrc/codeTest.txt")
+            logging.info("启用了学科分类测试模式，将使用测试学科分类源: ./dataSrc/codeTest.txt")
+        else:
+            self.srcCodeFile = srcCodeFileNormal
+            print("未启用学科分类测试模式，将使用完整的学科分类源: ./dataSrc/code.txt")
+            logging.info("未启用学科分类测试模式，将使用完整的学科分类源: ./dataSrc/code.txt")
         self.host = settings.get("MYSQL_HOST")
         self.port = int(settings.get("MYSQL_PORT"))
         self.user = settings.get("MYSQL_USER")
@@ -70,7 +81,7 @@ class StatusManager():
             self.endDate = self.yesterday
         else:
             self.endDate = result[2]
-            logging.info("获取的终止日期为 %s" % self.endDate)
+            # logging.info("获取的终止日期为 %s" % self.endDate)
         # 判断学科代码是否存在，不存在就默认从code表第一个开始
         if result[0] == "" or result[0] is None:
             code = self.codes[0]
@@ -127,7 +138,7 @@ class StatusManager():
                 day = int(lastDate[8:10])
                 nextDay = (datetime.date(year, month, day) + oneday).strftime('%Y-%m-%d')
                 self.markCurrentDateAndCode(nextDay, self.codes[0])
-                logging.debug("获取的下一个日期、学科分类为：%s，%s" % (nextDay, self.codes[0]))
+                # logging.debug("获取的下一个日期、学科分类为：%s，%s" % (nextDay, self.codes[0]))
                 # print("获取的下一个日期、学科分类为：%s，%s" % (lastDate, self.codes[index+1]))
                 self.setStatusRunning()
                 return nextDay, self.codes[0]

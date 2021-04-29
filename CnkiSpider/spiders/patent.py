@@ -31,6 +31,7 @@ class PatentSpider(RedisSpider):
 
     def __init__(self, settings, *args, **kwargs):
         super(PatentSpider, self).__init__(*args, **kwargs)
+        FileUtil.initOutputDir()
         # self.base_url = 'http://dbpub.cnki.net/grid2008/dbpub/detail.aspx?dbcode=scpd&'
         self.base_url = 'https://kns.cnki.net/kns/brief/brief.aspx?curpage=%d&RecordsPerPage=50&QueryID=10&ID=&turnpage=1&tpagemode=L&dbPrefix=SCPD&Fields=&DisplayMode=listmode&PageName=ASP.brief_result_aspx&isinEn=0&'
         self.patent_content_pre_url = 'https://kns.cnki.net/kcms/detail/detail.aspx?dbcode=SCPD&dbname=SCPD%s&filename=%s'
@@ -45,7 +46,6 @@ class PatentSpider(RedisSpider):
 
     # 重写startrequests
     def start_requests(self):
-        FileUtil.initOutputDir()
         # util = PatentUtil()
         # util.generateUrlsDir()
         # dates = util.getAllDayPerYear()
