@@ -415,6 +415,8 @@ class PatentSpider(RedisSpider):
         rows = response.xpath("//div[@class='row'] | //div[@class='row-1'] | //div[@class='row-2']")
         for row in rows:
             key = row.xpath("./span[@class='rowtit']/text() | ./span[@class='rowtit2']/text()").extract_first()
+            if key is not None:
+                key = key.strip()
             # 有的文本含有链接，提取方法不一样
             value = row.xpath("./p[@class='funds']/text() | ./p[@class='funds']/a/text()").extract_first()
             if key == "专利类型：":
@@ -438,7 +440,7 @@ class PatentSpider(RedisSpider):
             elif key == "授权公布号：":
                 item['authPublicationNo'] =value   # 授权公布号
             elif key == "公开公告日：":
-                item['publicationDate'] = value  # 公开公告日 或 授权公告日
+                item['publicationDate'] = value  # 公开公告日
             elif key == "授权公告日：":
                 item['authPublicationDate'] = value  # 授权公告日
             elif key == "国省代码：":
