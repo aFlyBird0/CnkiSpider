@@ -322,7 +322,7 @@ class PatentSpider(RedisSpider):
             # print(response.text)
             # 这里的url一定不是空的，如果是空的话前面已经return了不用担心
             logging.error("专利页面解析出现错误 %s %s %s %s" % (code, date, response.meta['url'], response.text))
-            ErrorUtil.markCodeError(code=code, date=date, type=SpiderTypeEnum.PATENT.value)
+            ErrorUtil.markCodeError(code=code, date=date, type=SpiderTypeEnum.PATENT)
             return
         page = pagerTitleCell.strip()
         num = int(re.findall(r'\d+', page.replace(',', ''))[0])  # 文献数
