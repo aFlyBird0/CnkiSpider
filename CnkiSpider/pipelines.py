@@ -19,7 +19,10 @@ class CnkispiderPipeline:
             if isinstance(item, PatentContentItem):
                 year = item['year']
                 resultPath = FileUtil.mkResultYearTypeDir(year, item['type'])
-                resultFilename = resultPath + item['naviCode'] + '.csv'
+                # 每个细分学科分类存成一个文件
+                # resultFilename = resultPath + item['naviCode'] + '.csv'
+                # 每个大学科分类存成一个文件
+                resultFilename = resultPath + item['naviCode'][0] + '.csv'
                 FileUtil.write_header(resultFilename, item.keys())
                 item = self.removeLineFeed(item)
                 with open(resultFilename, 'a', encoding='utf-8', newline='') as f:
@@ -35,7 +38,10 @@ class CnkispiderPipeline:
                 year = item['year']
                 # 不同类型的根据type字段直接新建对应的文件夹
                 resultPath = FileUtil.mkResultYearTypeDir(year, item['type'])
-                resultFilename = resultPath + item['naviCode'] + '.csv'
+                # 每个细分学科分类存成一个文件
+                # resultFilename = resultPath + item['naviCode'] + '.csv'
+                # 每个大学科分类存成一个文件
+                resultFilename = resultPath + item['naviCode'][0] + '.csv'
                 FileUtil.write_header(resultFilename, item.keys())
                 item = self.removeLineFeed(item)
                 with open(resultFilename, 'a', encoding='utf-8', newline='') as f:
