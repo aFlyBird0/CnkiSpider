@@ -294,6 +294,7 @@ class PaperAchSpider(RedisSpider):
                 urlParam = link_params[3] + "&" + link_params[4] + "&" + link_params[5]
                 url = 'https://kns.cnki.net/KCMS/detail/detail.aspx?' + urlParam
                 db = row.xpath('./td')[5].xpath('./text()').extract_first().strip()
+                # 按不同的db类型解析文献，且只取期刊、博硕、成果三类，其余舍弃
                 if db == '期刊':
                     item = JournalLinkItem()
                     item['code'] = code

@@ -1,0 +1,2 @@
+nohup python3 -u runPatent.py > runPatent.log 2>&1 &
+nohup python3 -u runPaperAch.py > runPaperAch.log 2>&1 &
