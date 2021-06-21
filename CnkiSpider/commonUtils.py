@@ -38,7 +38,7 @@ class CookieUtil():
     @classmethod
     def getPatentCookies(cls, date, code, proxyDict=None):
         '''
-        根据日期，分类代码获取cookies,翻页时必须要有cookie
+        (已弃用，见getPatentCookiesProxy）根据日期，分类代码获取cookies,翻页时必须要有cookie
         :param date:
         :param code:
         :param proxy:
@@ -46,6 +46,19 @@ class CookieUtil():
         '''
         search_url = 'http://kns.cnki.net/kns/request/SearchHandler.ashx'
         times = time.strftime('%a %b %d %Y %H:%M:%S') + ' GMT+0800 (中国标准时间)'
+        headers = {
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Language": "zh-CN,zh;q=0.9",
+            "Connection": "keep-alive",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Host": "kns.cnki.net",
+            "Origin": "https://kns.cnki.net",
+            "Referer": "https://kns.cnki.net/kns/brief/result.aspx?dbprefix=SCPD",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36"
+        }
         params = {
             "action": "",
             "NaviCode": code,
@@ -64,9 +77,9 @@ class CookieUtil():
         }
         # logging.debug('requests获取cookis, 代理为%s' % str(proxyDict))
         if proxyDict:
-            session_response = requests.get(search_url, params=params, proxies=cls.configReqestsProxyMeta(proxyDict))
+            session_response = requests.get(search_url, params=params, headers=headers,proxies=cls.configReqestsProxyMeta(proxyDict))
         else:
-            session_response = requests.get(search_url, params=params)
+            session_response = requests.get(search_url, headers=headers, params=params)
         cookies = requests.utils.dict_from_cookiejar(session_response.cookies)
         return cookies
 
@@ -81,6 +94,19 @@ class CookieUtil():
         '''
         search_url = 'http://kns.cnki.net/kns/request/SearchHandler.ashx'
         times = time.strftime('%a %b %d %Y %H:%M:%S') + ' GMT+0800 (中国标准时间)'
+        headers = {
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Language": "zh-CN,zh;q=0.9",
+            "Connection": "keep-alive",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Host": "kns.cnki.net",
+            "Origin": "https://kns.cnki.net",
+            "Referer": "https://kns.cnki.net/kns/brief/result.aspx?dbprefix=SCPD",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36"
+        }
         params = {
             "action": "",
             "NaviCode": code,
@@ -106,9 +132,9 @@ class CookieUtil():
             try:
                 if settings.get("PROXY_OPEN"):
                     proxyDict = ApeProxyManager.getProxy()
-                    session_response = requests.get(search_url, params=params, proxies=cls.configReqestsProxyMeta(proxyDict))
+                    session_response = requests.get(search_url, params=params, headers=headers, proxies=cls.configReqestsProxyMeta(proxyDict))
                 else:
-                    session_response = requests.get(search_url, params=params)
+                    session_response = requests.get(search_url, params=params, headers=headers)
                 if session_response.status_code == 200:
                     break
                 else:
@@ -181,6 +207,19 @@ class CookieUtil():
         '''
         search_url = 'https://kns.cnki.net/kns/request/SearchHandler.ashx/'
         now_time = time.strftime('%a %b %d %Y %H:%M:%S') + ' GMT+0800 (中国标准时间)'
+        headers = {
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Language": "zh-CN,zh;q=0.9",
+            "Connection": "keep-alive",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Host": "kns.cnki.net",
+            "Origin": "https://kns.cnki.net",
+            "Referer": "https://kns.cnki.net/kns/brief/result.aspx?dbprefix=SCDB&crossDbcodes=CJFQ,CDFD,CMFD,CPFD,IPFD,CCND,CCJD",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36"
+        }
         params = {
             "action": "",
             "NaviCode": code,
@@ -205,10 +244,10 @@ class CookieUtil():
             try:
                 if settings.get("PROXY_OPEN"):
                     proxyDict = ApeProxyManager.getProxy()
-                    session_response = requests.get(search_url, params=params,
+                    session_response = requests.get(search_url, params=params,headers=headers,
                                                     proxies=cls.configReqestsProxyMeta(proxyDict))
                 else:
-                    session_response = requests.get(search_url, params=params)
+                    session_response = requests.get(search_url, params=params, headers=headers)
                 if session_response.status_code == 200:
                     break
                 else:
@@ -240,7 +279,19 @@ class ErrorUtil():
     errorLinkTable = settings.get("ERROR_LINK_TABLE")
 
     conn = pymysql.connect(host=host, port=port, user=user, passwd=passwd, database=database)
-    cursor = conn.cursor()
+
+    @classmethod
+    def reCon(cls):
+        """ MySQLdb.OperationalError异常"""
+        # self.con.close()
+        while True:
+            try:
+                cls.conn.ping()
+                return
+            except pymysql.err.OperationalError:
+                logging.warning("mysql连接失败开始重连")
+                cls.conn.ping(True)
+            time.sleep(3)
 
 
     @classmethod
@@ -269,8 +320,10 @@ class ErrorUtil():
         :param code:
         :return:
         '''
+        cls.reCon()
+        cursor = cls.conn.cursor()
         sql = "INSERT INTO `%s` (`type`, `code`, `link`, `date`)VALUES('%s', '%s', '%s', '%s')" % (cls.errorLinkTable, type.value, code, url, date)
-        cls.cursor.execute(sql)
+        cursor.execute(sql)
         cls.conn.commit()
 
     # @classmethod
@@ -287,9 +340,11 @@ class ErrorUtil():
         :param date:
         :return:
         '''
+        cls.reCon()
+        cursor = cls.conn.cursor()
         sql = "INSERT IGNORE INTO `%s` (`type`, `code`, `date`)VALUES('%s', '%s', '%s')" % (
             cls.errorCodeTable, type.value, code, date)
-        cls.cursor.execute(sql)
+        cursor.execute(sql)
         cls.conn.commit()
 
     @classmethod
@@ -298,8 +353,10 @@ class ErrorUtil():
             sql = "select `id`, `type`, `code`, `date` from `%s` where `type` = '%s' limit 1" % (cls.errorCodeTable, type.value)
         else:
             sql = "select `id`, `type`, `code`, `date` from `%s` limit 1" % (cls.errorCodeTable)
-        cls.cursor.execute(sql)
-        result = cls.cursor.fetchone()
+        cls.reCon()
+        cursor = cls.conn.cursor()
+        cursor.execute(sql)
+        result = cursor.fetchone()
         if not result:
             return None
         else:
@@ -312,8 +369,10 @@ class ErrorUtil():
             cls.errorLinkTable, type.value)
         else:
             sql = "select `id`, `type`, `code`, `link`, `date` from `%s` limit 1" % (cls.errorLinkTable)
-        cls.cursor.execute(sql)
-        result = cls.cursor.fetchone()
+        cls.reCon()
+        cursor = cls.conn.cursor()
+        cursor.execute(sql)
+        result = cursor.fetchone()
         if not result:
             return None
         else:
@@ -322,13 +381,17 @@ class ErrorUtil():
     @classmethod
     def deleteErrorCode(cls, id:int):
         sql = "delete from `%s` where `id` = %d" % (cls.errorCodeTable, id)
-        cls.cursor.execute(sql)
+        cls.reCon()
+        cursor = cls.conn.cursor()
+        cursor.execute(sql)
         cls.conn.commit()
 
     @classmethod
     def deleteErrorLink(cls, id: int):
         sql = "delete from `%s` where `id` = %d" % (cls.errorLinkTable, id)
-        cls.cursor.execute(sql)
+        cls.reCon()
+        cursor = cls.conn.cursor()
+        cursor.execute(sql)
         cls.conn.commit()
 
     @classmethod

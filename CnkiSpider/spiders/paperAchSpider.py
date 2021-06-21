@@ -233,6 +233,8 @@ class PaperAchSpider(RedisSpider):
 
         logging.info("当前（期刊、博硕、成果）爬取任务、错误重爬均已完成")
 
+        FileUtil.markFinishOnce()
+
     # 第一页内容解析，获取页数信息
     def parse_first_page(self,response,cookies,code,date, requestType):
         if ErrorUtil.isBadResponse(response=response):

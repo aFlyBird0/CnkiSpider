@@ -15,6 +15,10 @@ author_output/
 
 # scrapyd 打包文件
 *.egg
+# scrapyd和pyinstaller打包文件
 build/
+
+# pyinstaller打包文件
+dist/
 
 **/__pycache__

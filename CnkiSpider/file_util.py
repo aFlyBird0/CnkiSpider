@@ -2,12 +2,40 @@ import csv
 import os
 import random
 import string
+import sys
+import logging
+
+class PackUtil:
+    '''
+    打包工具，做一个文件路径转换
+    '''
+    @classmethod
+    def resource_path(cls, relative_path: str):
+        if getattr(sys, 'frozen', False):
+            base_path = sys._MEIPASS
+        else:
+            base_path = os.path.abspath(".")
+        return os.path.join(base_path, relative_path)
 
 class FileUtil:
     '''
     文件工具类
     '''
 
+
+    # 如下方式，运行时，不打包则会生成在项目目录，打包会生成在exe内部(运行结束消失）
+    # targetDir = PackUtil.resource_path("./target/")
+    # resultDir = PackUtil.resource_path("./result/")
+    # htmlDir = PackUtil.resource_path("./html/")
+    # errorDir = PackUtil.resource_path("./error/")
+    # logDir = PackUtil.resource_path("./log/")
+    #
+    # errorLinkDir = PackUtil.resource_path("./error/link/")
+    # errorOverflowDir = PackUtil.resource_path("./error/overflow/")
+    # errorDayDir = PackUtil.resource_path("./error/day/")
+    # errorPageDir = PackUtil.resource_path("./error/page/")
+
+    # 如下方式，运行时，不打包则会生成在项目目录，打包会生成在exe同级目录
     targetDir = "./target/"
     resultDir = "./result/"
     htmlDir = "./html/"
@@ -19,20 +47,40 @@ class FileUtil:
     errorDayDir = "./error/day/"
     errorPageDir = "./error/page/"
 
+    # @classmethod
+    # def write_header(cls, filename, header):
+    #     '''
+    #             (已废弃）不存在文件则创建文件，不存在header则写入hearder，创建header
+    #             :return:
+    #             '''
+    #     # newline的作用是防止每次插入都有空行
+    #     with open(filename, "a+", newline='', encoding='utf-8') as csvfile:
+    #         writer = csv.DictWriter(csvfile, header)
+    #         # 以读的方式打开csv 用csv.reader方式判断是否存在标题。
+    #         with open(filename, "r", newline="", encoding='utf-8') as f:
+    #             reader = csv.reader(f)
+    #             if not [row for row in reader]:
+    #                 writer.writeheader()
+
     @classmethod
     def write_header(cls, filename, header):
         '''
-                不存在文件则创建文件，不存在header则写入hearder，创建header
-                :return:
-                '''
+        不存在文件则创建文件并写入header
+        没有上一个函数严谨，但可以避免文件读取写入冲突
+        :return:
+        '''
         # newline的作用是防止每次插入都有空行
-        with open(filename, "a+", newline='', encoding='utf-8') as csvfile:
-            writer = csv.DictWriter(csvfile, header)
-            # 以读的方式打开csv 用csv.reader方式判断是否存在标题。
-            with open(filename, "r", newline="", encoding='utf-8') as f:
-                reader = csv.reader(f)
-                if not [row for row in reader]:
-                    writer.writeheader()
+        if not os.path.exists(filename):
+            with open(filename, "a+", newline='', encoding='utf-8') as csvfile:
+                writer = csv.DictWriter(csvfile, header)
+                writer.writeheader()
+
+    @classmethod
+    def saveItem(cls, resultFilename, item):
+        with open(resultFilename, 'a', encoding='utf-8', newline='') as f:
+            csvWriter = csv.DictWriter(f, item.keys())
+            csvWriter.writerow(item)
+
     @classmethod
     def remove_reduntant_header_one_file(cls, dir_path: str, filename: str):
         '''
@@ -153,3 +201,31 @@ class FileUtil:
             if char in sets:
                 filename = filename.replace(char, '')
         return filename.replace('\n', '').replace('\r', ' ')
+
+    @classmethod
+    def markFinishOnce(cls):
+        '''
+        标记成功运行，连续标记两次证明程序运行完成
+        :return:
+        '''
+        filenameOne = "1.txt"
+        filenameTwo = "2.txt"
+        if os.path.exists(filenameTwo):
+            logging.info("已经运行两次了")
+        elif os.path.exists(filenameOne):
+            logging.info("第二次运行完成")
+            with open(filenameTwo, "w", encoding="utf-8") as f:
+                f.write("第二次运行完成，所有任务完成，请将整个文件夹返还，谢谢！\n")
+        else:
+            logging.info("第一次运行完成")
+            with open(filenameOne, "w", encoding="utf-8") as f:
+                f.write("第一次运行完成，请再次运行exe文件，并不要删除此文件，等待2.txt生成\n")
+    @classmethod
+    def IfFinishTask(cls):
+        '''
+        本次分发的任务是否完成
+        :return:
+        '''
+        filenameOne = "1.txt"
+        filenameTwo = "2.txt"
+        return os.path.exists(filenameTwo)

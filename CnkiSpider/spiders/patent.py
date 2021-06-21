@@ -12,6 +12,7 @@ from CnkiSpider.file_util import FileUtil
 from CnkiSpider.proxy import ApeProxyManager
 from scrapy.http.cookies import CookieJar
 from scrapy_redis.spiders import RedisSpider
+from CnkiSpider.items import *
 
 import logging
 import datetime
@@ -190,6 +191,8 @@ class PatentSpider(RedisSpider):
         ######################## 重新请求所有失败链接 结束 ############################
 
         logging.info("当前（论文）爬取任务、错误重爬均已完成")
+
+        FileUtil.markFinishOnce()
 
     def handleErrorCodeDate(self):
         '''

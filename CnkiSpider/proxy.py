@@ -18,6 +18,7 @@ class ApeProxyManager:
     auth_mode = settings.get("PROXY_AUTH_MODE")
     proxyUser = id
     proxyPass = secret
+    print('proxyUser:', proxyUser)
     proxyAuth = "Basic " + base64.urlsafe_b64encode(bytes((proxyUser + ":" + proxyPass), "ascii")).decode("utf8")
     params = {
         "id": id,

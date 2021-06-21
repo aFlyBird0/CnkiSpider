@@ -1,0 +1,6 @@
+nohup python3 -u runPatent.py > runPatent.log 2>&1 &
+nohup python3 -u runPaperAch.py > runPaperAch.log 2>&1 &
+
+spec数据文件修改
+datas=[('dataSrc','dataSrc'), ('./scrapy.cfg', '.'), ('./config.cfg', '.'), ('CnkiSpider/spiders', 'CnkiSpider/spiders'), ('log','log')],
+打包完成记得在dis/CnkiSpiderExec/目录下建立 log 文件夹

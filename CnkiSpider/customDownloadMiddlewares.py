@@ -115,7 +115,7 @@ class CnkiSpiderHeaderMiddleware:
         # 专利和论文设置不同的Refer
         if spider.name == SpiderTypeEnum.PAPER_AND_ACH:
             request.headers.setdefault("Referer", "https://kns.cnki.net/kns/brief/result.aspx?dbprefix=SCDB&crossDbcodes=CJFQ,CDFD,CMFD,CPFD,IPFD,CCND,CCJD")
-        else:
+        elif spider.name == SpiderTypeEnum.PATENT:
             request.headers.setdefault("Referer", "https://kns.cnki.net/kns/brief/result.aspx?dbprefix=SCOD")
 
 

@@ -25,9 +25,7 @@ class CnkispiderPipeline:
                 resultFilename = resultPath + item['naviCode'][0] + '.csv'
                 FileUtil.write_header(resultFilename, item.keys())
                 item = self.removeLineFeed(item)
-                with open(resultFilename, 'a', encoding='utf-8', newline='') as f:
-                    csvWriter = csv.DictWriter(f, item.keys())
-                    csvWriter.writerow(item)
+                FileUtil.saveItem(resultFilename=resultFilename, item=item)
             elif isinstance(item, ErrorUrlItem):
                 # self.markLinkError(item['url'], SpiderTypeEnum.PATENT.value)
                 self.easyMarkErrorItem(item)
@@ -44,9 +42,7 @@ class CnkispiderPipeline:
                 resultFilename = resultPath + item['naviCode'][0] + '.csv'
                 FileUtil.write_header(resultFilename, item.keys())
                 item = self.removeLineFeed(item)
-                with open(resultFilename, 'a', encoding='utf-8', newline='') as f:
-                    csvWriter = csv.DictWriter(f, item.keys())
-                    csvWriter.writerow(item)
+                FileUtil.saveItem(resultFilename=resultFilename, item=item)
             elif isinstance(item, ErrorUrlItem):
                 # self.markLinkError(item['url'], SpiderTypeEnum.PATENT.value)
                 self.easyMarkErrorItem(item)

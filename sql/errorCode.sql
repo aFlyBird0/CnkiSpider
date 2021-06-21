@@ -4,8 +4,8 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ----------------------------
 -- Table structure for status
 -- ----------------------------
-DROP TABLE IF EXISTS `errorCode`;
-CREATE TABLE `errorCode`  (
+-- DROP TABLE IF EXISTS `errorCode`;
+CREATE TABLE If Not Exists `errorCode`  (
   `id` INT UNSIGNED AUTO_INCREMENT,
   `type` varchar(255) COMMENT '文献类型，用于区分专利patent和（期刊、博硕、成果）的链接获取',
   `code` varchar(255) COMMENT '学科分类',
