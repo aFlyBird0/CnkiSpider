@@ -421,7 +421,9 @@ class PatentSpider(RedisSpider):
             if key is not None:
                 key = key.strip()
             # 有的文本含有链接，提取方法不一样
-            value = row.xpath("./p[@class='funds']/text() | ./p[@class='funds']/a/text()").extract_first()
+            # 得到列表形式的值
+            valueList = row.xpath("./p[@class='funds']/text() | ./p[@class='funds']/a/text()").getall()
+            value = "".join(valueList)
             if key == "专利类型：":
                 item['applicationType'] = value # 专利类型
             elif key == "申请日：":
@@ -511,17 +513,21 @@ class PatentSpider(RedisSpider):
     def getFirstFourAuthor(self, inventors):
         # 把“叶莉华; 冯洋洋; 王著元; 程志祥; 崔一平”形式的作者划分开
         # 查了下中国专利作者的数量是不受限制的，这里对发明人做了预处理，提取分割了前四位
-        first_inventor = inventors.split(';')[0]
-        if len(inventors.split(';')) > 1:
-            second_inventor = inventors.split(';')[1]
+        inventorsList = inventors.split(';')
+        inventorsLen = len(inventorsList)
+        if inventorsLen < 1:
+            return '', '', '', ''
+        first_inventor = inventorsList[0]
+        if inventorsLen > 1:
+            second_inventor = inventorsList[1].strip()
         else:
             second_inventor = ''
-        if len(inventors.split(';')) > 2:
-            third_inventor = inventors.split(';')[2]
+        if inventorsLen > 2:
+            third_inventor = inventorsList[2].strip()
         else:
             third_inventor = ''
-        if len(inventors.split(';')) > 3:
-            fourth_inventor = inventors.split(';')[3]
+        if inventorsLen > 3:
+            fourth_inventor = inventorsList[3].strip()
         else:
             fourth_inventor = ''
 
