@@ -1,5 +1,9 @@
 # 知网爬虫（专利、论文、成果）
 
+## 整体介绍
+
+[Scrapy知网爬虫（一）整体理论篇 | Bird's Blog](https://bird.blog.tcualhp.cn/2021/07/Scrapy%E7%9F%A5%E7%BD%91%E7%88%AC%E8%99%AB%EF%BC%88%E4%B8%80%EF%BC%89%E6%95%B4%E4%BD%93%E7%90%86%E8%AE%BA%E7%AF%87/)
+
 ## 开发记录
 ### 数据库说明
 * redis
