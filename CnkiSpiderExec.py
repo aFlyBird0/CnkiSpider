@@ -90,6 +90,7 @@ from CnkiSpider.proxy import ApeProxyManager
 from scrapy.http.cookies import CookieJar
 from scrapy_redis.spiders import RedisSpider
 import base64
+import os
 
 
 from CnkiSpider.customDownloadMiddlewares import *
@@ -97,7 +98,7 @@ from CnkiSpider.file_util import *
 from CnkiSpider.pipelines import *
 from CnkiSpider.proxy import *
 from CnkiSpider.statusManager import *
-from CnkiSpider.settings import binjiang_settings, dev_settings, product_settings, settings, settings_distribute, settings_distribute142out
+from CnkiSpider.settings import settings, settings_distribute
 from CnkiSpider.spiders import *
 from CnkiSpider.spiders import patent, paperAchSpider, __init__
 from CnkiSpider.proxy import *
