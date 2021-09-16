@@ -9,7 +9,7 @@
 
 import os
 import random
-from CnkiSpider.commonUtils import SpiderTypeEnum
+# from CnkiSpider.commonUtils import SpiderTypeEnum
 
 BOT_NAME = 'CnkiSpider'
 
@@ -41,13 +41,13 @@ DOWNLOAD_TIMEOUT = 5
 CODE_FILE_TEST_MODE = False
 
 # 分发模式，开启此模式后，每次启动会重置当前爬虫状态（即重新链接获取，但链接解析不会重复）
-DISTRUBUTE_MODE = True
+DISTRUBUTE_MODE = False
 
 # SPIDER_TYPE = SpiderTypeEnum.PATENT.value
 # SPIDER_TYPE = SpiderTypeEnum.PAPER_AND_ACH.value
-# 爬取的文献的开始日期和结束日期
-START_DATE = '2020-07-01'
-END_DATE = '2020-07-31'
+# 爬取的文献的开始日期和结束日期，此配置已废弃，开始日期与结束日期请在 status 表中设置
+# START_DATE = '2020-07-01'
+# END_DATE = '2020-07-31'
 
 ####################### proxy begin ##########################
 # 是否开启，不开启就用本机
