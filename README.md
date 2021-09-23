@@ -2,7 +2,7 @@
 
 ## 整体介绍
 
-[Scrapy知网爬虫（一）整体理论篇 | Bird's Blog](https://bird.blog.tcualhp.cn/2021/07/Scrapy%E7%9F%A5%E7%BD%91%E7%88%AC%E8%99%AB%EF%BC%88%E4%B8%80%EF%BC%89%E6%95%B4%E4%BD%93%E7%90%86%E8%AE%BA%E7%AF%87/)
+[Scrapy知网爬虫（一）整体理论篇 | Bird's Blog](https://blog.aflybird.cn/2021/07/Scrapy%E7%9F%A5%E7%BD%91%E7%88%AC%E8%99%AB%EF%BC%88%E4%B8%80%EF%BC%89%E6%95%B4%E4%BD%93%E7%90%86%E8%AE%BA%E7%AF%87/)
 
 ## 注意
 1. 专利在2021年5月左右亲测可爬，爬百万千万数据没问题论文、项目部分还没写好，不过二者的基础依赖大多一样，主要就是改 `CnkiSpider/spiders/paperAchSpider.py` 中的 `html` 解析部分  
