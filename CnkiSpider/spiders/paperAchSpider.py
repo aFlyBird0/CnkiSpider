@@ -368,7 +368,6 @@ class PaperAchSpider(RedisSpider):
             return
         logging.debug("解析期刊：%s" % url)
         item = self.getDefaultJournalItem()
-        item = JournalContentItem()
         item['naviCode'] = code
         item['type'] = SpiderTypeEnum.JOURNAL.value
         item['year'] = date[0:4]
@@ -576,7 +575,6 @@ class PaperAchSpider(RedisSpider):
 
     def getDefaultBoshuoItem(self):
         item = BoshuoContentItem()
-        item = JournalContentItem()
         item['naviCode'] = ""  # 学科分类代码 如A001这种
         item['type'] = ""
         item['year'] = ""
