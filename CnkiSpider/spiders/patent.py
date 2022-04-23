@@ -472,7 +472,7 @@ class PatentSpider(RedisSpider):
         # 法律状态url中的vl字段
         # vl = response.xpath("//input[@id='listv']/@value").extract_first()
         # item['legalStatus'] = legalStatusBaseUrl % (item['applicationNO'], vl)    # 法律状态链接
-        item['legalStatus'] = "" #可以请求旧接口，没必要再爬 https://dbpub.cnki.net/GBSearch/SCPDGBSearch.aspx?ID=
+        item['legalStatus'] = "" #法律状态会更新，所以建议以后用到的时候实时请求知网。相关的爬虫代码有空会给出
         # 保存html文件
         FileUtil.saveHtml(year=date[0:4], response=response, type=SpiderTypeEnum.PATENT.value, url=url, title=title)
         yield item
